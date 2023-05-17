@@ -1,5 +1,14 @@
 package com.gitlab.sszuev.textfiles
 
+/**
+ * Classic merge algorithm.
+ * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * @param [sourceLeft][Iterator]<[X]>
+ * @param [sourceRight][Iterator]<[X]>
+ * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
+ * @param [target] storage to write merged data
+ * @param [X] must be [Comparable] if no [comparator] is provided
+ */
 inline fun <reified X> merge(
     sourceLeft: Iterator<X>,
     sourceRight: Iterator<X>,
@@ -36,6 +45,9 @@ inline fun <reified X> defaultComparator(): Comparator<X> {
     return Comparator { left, right -> (left as Comparable<X>).compareTo(right) }
 }
 
+/**
+ * An iterator that can return back one step.
+ */
 class StepBackIterator<X>(private val base: Iterator<X>) : Iterator<X> {
     private var current: X? = null
     private var previous: X? = null
