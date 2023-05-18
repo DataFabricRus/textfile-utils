@@ -19,13 +19,17 @@ import kotlin.math.max
 
 /**
  * Reads [segmentSize] bytes from the channel starting from the position `[segmentSize] - 1` to the beginning (`position = 0`).
- * @param [segmentSize][AtomicLong] modifiable to monitor process
- * @param [buffer][ByteBuffer]
+ *
+ * @param [segmentSize][AtomicLong] size of processing area, it is modifiable to monitor the process;
+ * if it is equal to the file size, then the whole file will be read
+ * @param [buffer][ByteBuffer] to use while reading data from file;
+ * the memory consumption is approximately three times the buffer size,
+ * since bytes from the buffer transforms to Strings (assuming each [String] size is about `~ 2 * getBytes() + X`)
  * @param [delimiter] lines-separator
- * @param [charset]
- * @param [coroutineName]
- * @param [singleOperationTimeoutInMs][Long]
- * @param [internalQueueSize]
+ * @param [charset][Charset]
+ * @param [coroutineName] the name of coroutine which processes physical (NIO) reading
+ * @param [singleOperationTimeoutInMs][Long] to prevent hangs
+ * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [Sequence] of lines starting from the end of segment to the beginning
  */
 fun SeekableByteChannel.readLines(
@@ -86,10 +90,6 @@ internal class InverseLineReader(
     private val queue: BlockingQueue<String> = ArrayBlockingQueue(queueSize)
     private val delimiter: ByteArray = delimiter.toByteArray(charset)
 
-    private fun stop() {
-        end.set(true)
-    }
-
     fun run() {
         try {
             read()
@@ -97,7 +97,7 @@ internal class InverseLineReader(
             error.set(ex)
             throw ex
         } finally {
-            stop()
+            end.set(true)
         }
     }
 

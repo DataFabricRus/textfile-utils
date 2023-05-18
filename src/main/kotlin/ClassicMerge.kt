@@ -1,15 +1,52 @@
 package com.gitlab.sszuev.textfiles
 
+
 /**
- * Classic merge algorithm.
+ * Classic merge algorithm for [kotlin-sequences][Sequence].
+ * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * If given data is not sorted, strange output is expected
+ * @param [other][Sequence]<[X]>
+ * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
+ * @param [X] must be [Comparable] if no [comparator] is provided
+ * @return [Sequence]<[X]> merged data
+ * @throws ClassCastException if no [comparator] is provided and [X] is not [Comparable]
+ */
+inline fun <reified X> Sequence<X>.mergeWith(
+    other: Sequence<X>,
+    comparator: Comparator<X> = defaultComparator()
+): Sequence<X> = mergeSequences(this, other, comparator)
+
+/**
+ * Classic merge algorithm for [kotlin-sequences][Sequence].
+ * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * @param [sourceLeft][Sequence]<[X]>
+ * @param [sourceRight][Sequence]<[X]>
+ * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
+ * @param [X] must be [Comparable] if no [comparator] is provided
+ * @return [Sequence]<[X]> merged data
+ * @throws ClassCastException if no [comparator] is provided and [X] is not [Comparable]
+ */
+inline fun <reified X> mergeSequences(
+    sourceLeft: Sequence<X>,
+    sourceRight: Sequence<X>,
+    comparator: Comparator<X> = defaultComparator()
+): Sequence<X> = sequence {
+    mergeIterators(sourceLeft.iterator(), sourceRight.iterator(), comparator) {
+        yield(it)
+    }
+}
+
+/**
+ * Classic merge algorithm for [iterators][Iterator].
  * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
  * @param [sourceLeft][Iterator]<[X]>
  * @param [sourceRight][Iterator]<[X]>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
  * @param [target] storage to write merged data
  * @param [X] must be [Comparable] if no [comparator] is provided
+ * @throws ClassCastException if no [comparator] is provided and [X] is not [Comparable]
  */
-inline fun <reified X> merge(
+inline fun <reified X> mergeIterators(
     sourceLeft: Iterator<X>,
     sourceRight: Iterator<X>,
     comparator: Comparator<X> = defaultComparator(),
@@ -32,6 +69,7 @@ inline fun <reified X> merge(
         target(right.next())
     }
 }
+
 
 /**
  * @throws ClassCastException on invoke

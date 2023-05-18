@@ -2,13 +2,17 @@ package com.gitlab.sszuev.textfiles
 
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
+import java.nio.file.Files
+import java.nio.file.OpenOption
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 /**
  * Inserts the given [data] at the beginning of channel.
  * @param [data][ByteArray] to write
  * @param [buffer][ByteBuffer] non empty buffer
  */
-fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer) {
+fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer = ByteBuffer.allocate(8192)) {
     require(buffer.array().isNotEmpty())
     if (data.isEmpty()) {
         return
@@ -59,3 +63,25 @@ fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer) {
         "write-bytes = $writeBytes, data-size = ${data.size}"
     }
 }
+
+/**
+ * Opens or creates file, executes the [block], then closes the channel.
+ */
+fun Path.use(
+    vararg options: OpenOption = arrayOf(
+        StandardOpenOption.READ,
+        StandardOpenOption.WRITE,
+    ),
+    block: (SeekableByteChannel) -> Unit,
+) = channel(*options).use(block)
+
+/**
+ * Opens or creates a file, returning a seekable byte channel to access the file.
+ * @see Files.newByteChannel
+ */
+fun Path.channel(
+    vararg options: OpenOption = arrayOf(
+        StandardOpenOption.READ,
+        StandardOpenOption.WRITE,
+    )
+): SeekableByteChannel = Files.newByteChannel(this, *options)
