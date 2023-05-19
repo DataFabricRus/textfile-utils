@@ -13,41 +13,46 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.max
 
 /**
  * Reads [segmentSize] bytes from the channel starting from the position `[segmentSize] - 1` to the beginning (`position = 0`).
  *
- * @param [segmentSize][AtomicLong] size of processing area, it is modifiable to monitor the process;
- * if it is equal to the file size, then the whole file will be read
+ * @param [segmentSize][Long] initial size of processing area
  * @param [buffer][ByteBuffer] to use while reading data from file;
  * the memory consumption is approximately three times the buffer size,
  * since bytes from the buffer transforms to Strings (assuming each [String] size is about `~ 2 * getBytes() + X`)
  * @param [delimiter] lines-separator
  * @param [charset][Charset]
+ * @param [listener] function that accepts current segment size, to monitor the process
  * @param [coroutineName] the name of coroutine which processes physical (NIO) reading
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [Sequence] of lines starting from the end of segment to the beginning
  */
 fun SeekableByteChannel.readLines(
-    segmentSize: AtomicLong,
+    segmentSize: Long,
     buffer: ByteBuffer,
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
+    listener: (Long) -> Unit = {},
     coroutineName: String = "AsyncInverseReader",
     singleOperationTimeoutInMs: Long = 60 * 1000L,
     internalQueueSize: Int = 1024,
 ): Sequence<String> {
-    if (buffer.capacity() >= segmentSize.get()) {
+    require(buffer.capacity() > 0)
+    require(delimiter.isNotEmpty())
+    if (buffer.capacity() >= segmentSize) {
+        val size = segmentSize.toInt()
         // read everything into memory
-        val size = segmentSize.get().toInt()
         this.position(0)
         this.read(buffer)
-        segmentSize.set(0)
+        listener(0)
         val bytes = Arrays.copyOf(buffer.array(), size)
+        if (bytes.isEmpty()) {
+            return emptySequence()
+        }
         val lines = bytes.toString(charset).split(delimiter)
         return sequence {
             lines.indices.reversed().forEach {
@@ -58,6 +63,7 @@ fun SeekableByteChannel.readLines(
     val reader = InverseLineReader(
         source = this,
         segmentSize = segmentSize,
+        listener = listener,
         buffer = buffer,
         delimiter = delimiter,
         charset = charset,
@@ -73,15 +79,16 @@ fun SeekableByteChannel.readLines(
  */
 internal class InverseLineReader(
     private val source: SeekableByteChannel,
-    private val segmentSize: AtomicLong,
+    private val segmentSize: Long,
+    private val listener: (Long) -> Unit,
     private val buffer: ByteBuffer,
-    delimiter: String,
     private val charset: Charset,
     private val itemTimeoutInMs: Long,
+    delimiter: String,
     queueSize: Int,
 ) {
     init {
-        require(segmentSize.get() > 0)
+        require(segmentSize > 0)
         require(delimiter.isNotEmpty())
     }
 
@@ -102,12 +109,14 @@ internal class InverseLineReader(
     }
 
     private fun read() {
-        var index = segmentSize.get() - 1
+        listener(segmentSize)
+        var lastIndex = segmentSize - 1
         var remainder = ByteArray(0)
-        while (index > 0) {
-            val startIndex = max(0, index + 1 - buffer.capacity())
-            val readBytes = (index + 1 - startIndex).toInt()
+        while (lastIndex >= 0) {
+            val startIndex = max(0, lastIndex + 1 - buffer.capacity())
+            val readBytes = (lastIndex + 1 - startIndex).toInt()
             readBlock(startIndex)
+            listener(startIndex)
             val linesToRemainder = buffer.array().readLines(length = readBytes, remainder = remainder)
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
@@ -117,7 +126,7 @@ internal class InverseLineReader(
             if (startIndex == 0L) {
                 check(queue.offer(remainder.toString(charset), itemTimeoutInMs, TimeUnit.MILLISECONDS))
             }
-            index = startIndex - 1
+            lastIndex = startIndex - 1
         }
     }
 
@@ -136,25 +145,21 @@ internal class InverseLineReader(
         remainder: ByteArray
     ): Pair<List<String>, ByteArray> {
         val res = split(this, length, remainder, delimiter)
+        check(res.isNotEmpty())
         val lines = res.drop(1).map { it.toByteArray().toString(charset) }
         val nextRemainder = res[0].toByteArray()
         return lines to nextRemainder
     }
 
     private fun readBlock(startIndex: Long): Int {
-        val size = segmentSize.get()
-        check(startIndex < size)
         buffer.rewind()
         source.position(startIndex)
-        val res = source.read(buffer)
-        segmentSize.set(startIndex)
-        return res
+        return source.read(buffer)
     }
 
     companion object {
 
         private fun split(left: ByteArray, leftSize: Int, right: ByteArray, delimiter: ByteArray): List<List<Byte>> {
-            left + right
             val size = leftSize + right.size
             if (size == 0) {
                 return emptyList()

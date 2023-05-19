@@ -28,6 +28,10 @@ internal class ClassicMergeTest {
                     (1..13).map { Random.Default.nextInt() }.sorted()
                 ),
                 Arguments.arguments(
+                    listOf(5, 6, 7, 8),
+                    listOf(1, 2, 3, 4),
+                ),
+                Arguments.arguments(
                     emptyList<Int>(),
                     listOf(42, 42)
                 ),

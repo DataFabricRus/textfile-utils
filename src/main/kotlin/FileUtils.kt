@@ -66,13 +66,14 @@ fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer = ByteB
 
 /**
  * Opens or creates file, executes the [block], then closes the channel.
+ * Please note: any stream must be closed inside [block], otherwise [java.nio.channels.ClosedChannelException] is expected.
  */
-fun Path.use(
+fun <X> Path.use(
     vararg options: OpenOption = arrayOf(
         StandardOpenOption.READ,
         StandardOpenOption.WRITE,
     ),
-    block: (SeekableByteChannel) -> Unit,
+    block: (SeekableByteChannel) -> X,
 ) = channel(*options).use(block)
 
 /**
