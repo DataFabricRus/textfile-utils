@@ -89,7 +89,9 @@ fun mergeFiles(
 
     leftSource.use { left ->
         val leftSequence = left.readLines(
-            segmentSize = leftSegmentSize.get(),
+            direct = false,
+            startPositionInclusive = 0,
+            endPositionExclusive = leftSegmentSize.get(),
             listener = { leftSegmentSize.set(it) },
             buffer = leftBuffer,
             delimiter = delimiter,
@@ -98,7 +100,9 @@ fun mergeFiles(
         )
         rightSource.use { right ->
             val rightSequence = right.readLines(
-                segmentSize = rightSegmentSize.get(),
+                direct = false,
+                startPositionInclusive = 0,
+                endPositionExclusive = rightSegmentSize.get(),
                 listener = { rightSegmentSize.set(it) },
                 buffer = rightBuffer,
                 delimiter = delimiter,
