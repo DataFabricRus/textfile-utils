@@ -113,6 +113,16 @@ internal class LineReader(
     private val queue: BlockingQueue<String> = ArrayBlockingQueue(queueSize)
     private val delimiter: ByteArray = delimiter.toByteArray(charset)
 
+    fun lines(): Sequence<String> = sequence {
+        while (!end.get() || queue.isNotEmpty()) {
+            error.get()?.let { throw it }
+            queue.poll()?.let {
+                yield(it)
+            }
+        }
+        error.get()?.let { throw it }
+    }
+
     fun run() {
         try {
             if (direct) directRead() else reverseRead()
@@ -135,7 +145,7 @@ internal class LineReader(
             source.position(startIndex)
             source.read(buffer)
             listener(endIndex)
-            val linesToRemainder = buffer.array().readDirectLines(length = readBytes, remainder = remainder)
+            val linesToRemainder = buffer.array().directLines(length = readBytes, remainder = remainder)
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.forEach {
@@ -161,7 +171,7 @@ internal class LineReader(
             source.position(startIndex)
             source.read(buffer)
             listener(startIndex)
-            val linesToRemainder = buffer.array().readReverseLines(length = readBytes, remainder = remainder)
+            val linesToRemainder = buffer.array().reverseLines(length = readBytes, remainder = remainder)
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.indices.reversed().forEach {
@@ -174,17 +184,7 @@ internal class LineReader(
         }
     }
 
-    fun lines(): Sequence<String> = sequence {
-        while (!end.get() || queue.isNotEmpty()) {
-            error.get()?.let { throw it }
-            queue.poll()?.let {
-                yield(it)
-            }
-        }
-        error.get()?.let { throw it }
-    }
-
-    private fun ByteArray.readDirectLines(
+    private fun ByteArray.directLines(
         length: Int,
         remainder: ByteArray
     ): Pair<List<String>, ByteArray> {
@@ -196,7 +196,7 @@ internal class LineReader(
         return lines.toList() to nextRemainder
     }
 
-    private fun ByteArray.readReverseLines(
+    private fun ByteArray.reverseLines(
         length: Int,
         remainder: ByteArray
     ): Pair<List<String>, ByteArray> {
