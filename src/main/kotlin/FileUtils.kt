@@ -9,17 +9,23 @@ import java.nio.file.StandardOpenOption
 
 /**
  * Inserts the given [data] at the beginning of channel.
+ * TODO: will be changed.
  * @param [data][ByteArray] to write
+ * @param [beforePosition][Long] the position in the source before which the data should be inserted
  * @param [buffer][ByteBuffer] non empty buffer
  */
-fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer = ByteBuffer.allocate(8192)) {
+fun SeekableByteChannel.insert(
+    data: ByteArray,
+    beforePosition: Long = 0,
+    buffer: ByteBuffer = ByteBuffer.allocate(8192),
+) {
     require(buffer.array().isNotEmpty())
     if (data.isEmpty()) {
         return
     }
     if (data.size + size() <= buffer.capacity()) {
         buffer.rewind()
-        position(0)
+        position(beforePosition)
         var readBytes = read(buffer)
         val dst = buffer.array()
         if (readBytes == -1) { // empty file
@@ -29,17 +35,17 @@ fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer = ByteB
         System.arraycopy(data, 0, dst, 0, data.size)
         buffer.rewind()
         buffer.limit(data.size + readBytes)
-        position(0)
+        position(beforePosition)
         write(buffer)
         return
     }
     var index = size() - 1
-    while (index > 0) {
+    while (index > beforePosition) {
         var readPosition = index - buffer.limit() + 1
-        if (readPosition < 0) {
-            val newBufferLimit = (buffer.capacity() + readPosition).toInt()
+        if (readPosition < beforePosition) {
+            val newBufferLimit = (buffer.capacity() + readPosition - beforePosition).toInt()
             buffer.limit(newBufferLimit)
-            readPosition = 0
+            readPosition = beforePosition
         }
         index = readPosition
         buffer.rewind()
@@ -57,7 +63,7 @@ fun SeekableByteChannel.insertBefore(data: ByteArray, buffer: ByteBuffer = ByteB
         }
     }
     val dataBuffer = ByteBuffer.wrap(data)
-    position(0)
+    position(beforePosition)
     val writeBytes = write(dataBuffer)
     check(writeBytes == data.size) {
         "write-bytes = $writeBytes, data-size = ${data.size}"

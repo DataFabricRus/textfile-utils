@@ -53,7 +53,7 @@ fun mergeFiles(
  * @param [leftSource][Path]
  * @param [rightSource][Path]
  * @param [target][Path]
- * @param [chunkSize] the number of bytes to be written to the [target] per one [insertBefore]; must be greater than 2
+ * @param [chunkSize] the number of bytes to be written to the [target] per one [insert]; must be greater than 2
  * @param [readBufferSize] the number of bytes for reading, must be greater than 2
  * @param [writeBufferSize] the number of bytes for writing; must be greater than 2
  * @param [deleteSourceFiles] if `true` source files will be truncated while process and completely deleted at the end of it;
@@ -119,7 +119,7 @@ fun mergeFiles(
                     firstLine = false
                     chunk.put(it.toByteArray(charset))
                     if (chunk.size() > chunkSize) {
-                        res.insertBefore(data = chunk.toByteArray(), buffer = targetBuffer)
+                        res.insert(data = chunk.toByteArray(), buffer = targetBuffer)
                         chunk.clear()
                         if (deleteSourceFiles) {
                             left.truncate(leftSegmentSize.get())
@@ -128,7 +128,7 @@ fun mergeFiles(
                     }
                 }
                 if (chunk.size() > 0) {
-                    res.insertBefore(data = chunk.toByteArray(), buffer = targetBuffer)
+                    res.insert(data = chunk.toByteArray(), buffer = targetBuffer)
                     chunk.clear()
                     if (deleteSourceFiles) {
                         right.truncate(rightSegmentSize.get())
