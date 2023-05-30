@@ -76,6 +76,30 @@ fun SeekableByteChannel.readLines(
             }
         }
     }
+    return readLinesAsByteArrays(
+        startPositionInclusive = startPositionInclusive,
+        endPositionExclusive = endPositionExclusive,
+        delimiter = delimiter.toByteArray(charset),
+        listener = listener,
+        direct = direct,
+        buffer = buffer,
+        coroutineName = coroutineName,
+        singleOperationTimeoutInMs = singleOperationTimeoutInMs,
+        internalQueueSize = internalQueueSize
+    ).map { it.toString(charset) }
+}
+
+fun SeekableByteChannel.readLinesAsByteArrays(
+    startPositionInclusive: Long = 0,
+    endPositionExclusive: Long = size(),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    listener: (Long) -> Unit = {},
+    direct: Boolean = true,
+    buffer: ByteBuffer = ByteBuffer.allocate(8192),
+    coroutineName: String = "AsyncLineReader",
+    singleOperationTimeoutInMs: Long = 60 * 1000L,
+    internalQueueSize: Int = 1024,
+): Sequence<ByteArray> {
     val reader = LineReader(
         source = this,
         direct = direct,
@@ -84,7 +108,6 @@ fun SeekableByteChannel.readLines(
         listener = listener,
         buffer = buffer,
         delimiter = delimiter,
-        charset = charset,
         itemTimeoutInMs = singleOperationTimeoutInMs,
         queueSize = internalQueueSize,
     )
@@ -102,18 +125,16 @@ internal class LineReader(
     private val endPositionExclusive: Long,
     private val listener: (Long) -> Unit,
     private val buffer: ByteBuffer,
-    private val charset: Charset,
     private val itemTimeoutInMs: Long,
-    delimiter: String,
+    private val delimiter: ByteArray,
     queueSize: Int,
 ) {
 
     private val end: AtomicBoolean = AtomicBoolean(false)
     private val error: AtomicReference<Throwable> = AtomicReference()
-    private val queue: BlockingQueue<String> = ArrayBlockingQueue(queueSize)
-    private val delimiter: ByteArray = delimiter.toByteArray(charset)
+    private val queue: BlockingQueue<ByteArray> = ArrayBlockingQueue(queueSize)
 
-    fun lines(): Sequence<String> = sequence {
+    fun lines(): Sequence<ByteArray> = sequence {
         while (!end.get() || queue.isNotEmpty()) {
             error.get()?.let { throw it }
             queue.poll()?.let {
@@ -152,7 +173,7 @@ internal class LineReader(
                 check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
             }
             if (endIndex == endPositionExclusive - 1) {
-                check(queue.offer(remainder.toString(charset), itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                check(queue.offer(remainder, itemTimeoutInMs, TimeUnit.MILLISECONDS))
             }
             startIndex = endIndex + 1
         }
@@ -178,7 +199,7 @@ internal class LineReader(
                 check(queue.offer(readLines[it], itemTimeoutInMs, TimeUnit.MILLISECONDS))
             }
             if (startIndex == startPositionInclusive) {
-                check(queue.offer(remainder.toString(charset), itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                check(queue.offer(remainder, itemTimeoutInMs, TimeUnit.MILLISECONDS))
             }
             endIndex = startIndex - 1
         }
@@ -187,11 +208,10 @@ internal class LineReader(
     private fun ByteArray.directLines(
         length: Int,
         remainder: ByteArray
-    ): Pair<List<String>, ByteArray> {
+    ): Pair<List<ByteArray>, ByteArray> {
         val res = split(remainder, remainder.size, this, length, delimiter)
         check(res.isNotEmpty())
-        val lines =
-            res.asSequence().take(res.size - 1).map { it.toByteArray().toString(charset) }
+        val lines = res.asSequence().take(res.size - 1).map { it.toByteArray() }
         val nextRemainder = res[res.size - 1].toByteArray()
         return lines.toList() to nextRemainder
     }
@@ -199,10 +219,10 @@ internal class LineReader(
     private fun ByteArray.reverseLines(
         length: Int,
         remainder: ByteArray
-    ): Pair<List<String>, ByteArray> {
+    ): Pair<List<ByteArray>, ByteArray> {
         val res = split(this, length, remainder, remainder.size, delimiter)
         check(res.isNotEmpty())
-        val lines = res.asSequence().drop(1).map { it.toByteArray().toString(charset) }
+        val lines = res.asSequence().drop(1).map { it.toByteArray() }
         val nextRemainder = res[0].toByteArray()
         return lines.toList() to nextRemainder
     }

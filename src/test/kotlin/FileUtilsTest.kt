@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.exists
 import kotlin.io.path.fileSize
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -131,6 +132,19 @@ class FileUtilsTest {
         )
     }
 
+    @Test
+    fun `test invert file content`(@TempDir dir: Path) {
+        val source = Files.createTempFile(dir, "test-insert-source-", ".xxx")
+        val target = Files.createTempFile(dir, "test-insert-target-", ".xxx")
+        val sourceContent = (1..42).map { Random.nextDouble() }
+        source.writeText(sourceContent.joinToString(";"), Charsets.UTF_8)
+
+        invert(source = source, target = target, delimiter = ";", deleteSourceFiles = true)
+
+        val targetContent = target.readText(Charsets.UTF_8).split(";").map { it.toDouble() }
+        Assertions.assertEquals(sourceContent.reversed(), targetContent)
+        Assertions.assertFalse(source.exists())
+    }
 
     private fun testInsertAtTheBeginningOfNonEmptyFile(dir: Path, bufferSize: Int) {
         val txtBefore = """

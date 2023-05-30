@@ -2,14 +2,16 @@ package com.gitlab.sszuev.textfiles
 
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.io.path.deleteExisting
 
 /**
- * Inserts the given [data] at the beginning of channel.
- * TODO: will be changed.
+ * Inserts the given [data] at the [specified position][beforePosition] of channel.
+ *
  * @param [data][ByteArray] to write
  * @param [beforePosition][Long] the position in the source before which the data should be inserted
  * @param [buffer][ByteBuffer] non empty buffer
@@ -67,6 +69,49 @@ fun SeekableByteChannel.insert(
     val writeBytes = write(dataBuffer)
     check(writeBytes == data.size) {
         "write-bytes = $writeBytes, data-size = ${data.size}"
+    }
+}
+
+/**
+ * Inverts the file content, `a,b,c` -> `c,b,a`
+ * @param [source][Path]
+ * @param [target][Path]
+ * @param [deleteSourceFiles] if `true` source files will be truncated while process and completely deleted at the end of it;
+ * this allows to save diskspace
+ * @param [delimiter]
+ * @param [charset][Charset]
+ */
+fun invert(
+    source: Path,
+    target: Path,
+    deleteSourceFiles: Boolean = true,
+    delimiter: String = "\n",
+    charset: Charset = Charsets.UTF_8,
+) {
+    Files.newByteChannel(target, StandardOpenOption.WRITE).use { dst ->
+        Files.newByteChannel(source, StandardOpenOption.READ, StandardOpenOption.WRITE).use { src ->
+            var position = src.size()
+            val delimiterBytes = delimiter.toByteArray(charset)
+            src.readLinesAsByteArrays(
+                startPositionInclusive = 0,
+                endPositionExclusive = src.size(),
+                delimiter = delimiterBytes,
+                direct = false,
+            ).forEach { b ->
+                position -= b.size
+                dst.write(ByteBuffer.wrap(b))
+                if (position != 0L) {
+                    position -= delimiterBytes.size
+                    dst.write(ByteBuffer.wrap(delimiterBytes))
+                }
+                if (deleteSourceFiles) {
+                    src.truncate(position)
+                }
+            }
+        }
+    }
+    if (deleteSourceFiles) {
+        source.deleteExisting()
     }
 }
 
