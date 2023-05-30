@@ -116,6 +116,36 @@ fun invert(
 }
 
 /**
+ * Answers `true` if the file sorted lexicographically in accordance with [comparator].
+ */
+fun isSorted(
+    file: Path,
+    comparator: Comparator<String> = defaultComparator<String>(),
+    delimiter: String = "\n",
+    charset: Charset = Charsets.UTF_8,
+    buffer: ByteBuffer = ByteBuffer.allocate(8192),
+): Boolean = file.use(StandardOpenOption.READ) {
+    var prev: String? = null
+    it.readLines(
+        startPositionInclusive = 0,
+        endPositionExclusive = it.size(),
+        delimiter = delimiter,
+        charset = charset,
+        buffer = buffer,
+    ).all { line ->
+        if (prev == null) {
+            prev = line
+        }
+        if (comparator.compare(prev, line) > 0) {
+            false
+        } else {
+            prev = line
+            true
+        }
+    }
+}
+
+/**
  * Opens or creates file, executes the [block], then closes the channel.
  * Please note: any stream must be closed inside [block], otherwise [java.nio.channels.ClosedChannelException] is expected.
  */

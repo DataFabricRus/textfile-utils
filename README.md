@@ -5,9 +5,11 @@ The library is based on Java NIO (i.e. `java.nio.channels.SeekableByteChannel`) 
 
 Contains following utils:
 
-- inserting at the beginning of file
+- insert at an arbitrary position in the file
 - reading text lines from the end or start of the file
 - files merging
+- a method to determine if a file is sorted
+- invert file content
   TODO:
 - sorting large text files with memory O(1) and no additional diskspace
 - binary search in sorted file

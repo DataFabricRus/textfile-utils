@@ -146,6 +146,52 @@ class FileUtilsTest {
         Assertions.assertFalse(source.exists())
     }
 
+    @Test
+    fun `test is sorted`(@TempDir dir: Path) {
+        val f1 = Files.createTempFile(dir, "test-is-sorted-1-", ".xxx")
+        f1.writeText((1..42).map { Random.nextDouble() }.sorted().joinToString(","), Charsets.UTF_8)
+        Assertions.assertTrue(
+            isSorted(
+                file = f1,
+                delimiter = ",",
+                charset = Charsets.UTF_8,
+                comparator = { a, b -> a.toDouble().compareTo(b.toDouble()) }
+            )
+        )
+
+        val f2 = Files.createTempFile(dir, "test-is-sorted-2-", ".xxx")
+        f2.writeText((1..42).map { Random.nextLong() }.reversed().joinToString("\n"), Charsets.UTF_8)
+        Assertions.assertFalse(
+            isSorted(
+                file = f2,
+                delimiter = "\n",
+                charset = Charsets.UTF_8,
+                comparator = { a, b -> a.toDouble().compareTo(b.toDouble()) }
+            )
+        )
+
+        val f3 = Files.createTempFile(dir, "test-is-sorted-2-", ".xxx")
+        f3.writeText(sequenceOf(989, 2, 333, 55454, -1).joinToString(";"), Charsets.UTF_32)
+        Assertions.assertFalse(
+            isSorted(
+                file = f3,
+                delimiter = ";",
+                charset = Charsets.UTF_32,
+                comparator = { a, b -> a.toInt().compareTo(b.toInt()) }
+            )
+        )
+
+        val f4 = Files.createTempFile(dir, "test-is-sorted-2-", ".xxx")
+        f4.writeText(sequenceOf(-999.9, 2, 3, 3, 3, 3, 42).joinToString("\n"), Charsets.ISO_8859_1)
+        Assertions.assertTrue(
+            isSorted(
+                file = f4,
+                charset = Charsets.ISO_8859_1,
+                comparator = { a, b -> a.toFloat().compareTo(b.toFloat()) }
+            )
+        )
+    }
+
     private fun testInsertAtTheBeginningOfNonEmptyFile(dir: Path, bufferSize: Int) {
         val txtBefore = """
             Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, 
