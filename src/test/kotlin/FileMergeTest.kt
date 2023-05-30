@@ -6,12 +6,44 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.random.Random
 
 class FileMergeTest {
+
+    companion object {
+        fun mergeFiles(
+            leftSource: Path,
+            rightSource: Path,
+            target: Path,
+            allocatedMemorySize: Int,
+            deleteSourceFiles: Boolean,
+            comparator: Comparator<String>,
+            delimiter: String = "\n",
+            charset: Charset = Charsets.UTF_8,
+        ) {
+            val tmp = Files.createFile(Paths.get(target.toAbsolutePath().toString() + ".tmp"))
+            mergeFilesInverse(
+                leftSource = leftSource,
+                rightSource = rightSource,
+                target = tmp,
+                allocatedMemorySize = allocatedMemorySize,
+                deleteSourceFiles = deleteSourceFiles,
+                comparator = comparator,
+                delimiter = delimiter,
+                charset = charset,
+            )
+            invert(
+                source = tmp,
+                target = target,
+                delimiter = delimiter,
+                charset = charset,
+            )
+        }
+    }
 
     @Test
     fun `test merge small sources with big buffers`(@TempDir dir: Path) {
@@ -31,6 +63,7 @@ class FileMergeTest {
             target = res,
             allocatedMemorySize = 424242,
             delimiter = ", ",
+            deleteSourceFiles = true,
             charset = Charset.defaultCharset(),
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed(),
         )
@@ -56,6 +89,7 @@ class FileMergeTest {
             rightSource = right,
             target = res,
             allocatedMemorySize = 42,
+            deleteSourceFiles = true,
             delimiter = "\n",
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed()
         )
@@ -82,6 +116,7 @@ class FileMergeTest {
             rightSource = right,
             target = res,
             allocatedMemorySize = 42,
+            deleteSourceFiles = true,
             delimiter = "\n",
             charset = Charsets.ISO_8859_1,
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed()

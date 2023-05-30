@@ -1,20 +1,26 @@
 package com.gitlab.sszuev.textfiles
 
 import java.nio.ByteBuffer
+import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.fileSize
+import kotlin.math.min
 
 /**
  * Merges two file into single one with fixed allocation.
- * Files must be sorted.
+ * Source files must be sorted.
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
- * The chosen ratio is [allocatedMemorySize] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize` and does not have
- * any mathematical or experimental basis and is most likely not optimal.
- * Note that total memory consumption is greater than [allocatedMemorySize] sine both reader and writer use [String]s arrays in additional to the read/write buffers.
- * Source files will be deleted.
+ * The target file will be inverse: e.g. if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
+ * The [invert] method can be used to rewrite content in direct order.
+ *
+ * The chosen ratio is [allocatedMemorySize] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize` and
+ * has no any mathematical or experimental basis and is most likely not optimal.
+ * Note that total memory consumption is greater than [allocatedMemorySize]
+ * sine both reader and writer use additional arrays to store results.
+ * Source files will be deleted if.
  *
  * @param [leftSource][Path]
  * @param [rightSource][Path]
@@ -24,31 +30,34 @@ import kotlin.io.path.fileSize
  * @param [delimiter]
  * @param [charset][Charset]
  */
-fun mergeFiles(
+fun mergeFilesInverse(
     leftSource: Path,
     rightSource: Path,
     target: Path,
     allocatedMemorySize: Int,
+    deleteSourceFiles: Boolean = false,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
-) = mergeFiles(
+) = mergeFilesInverse(
     leftSource = leftSource,
     rightSource = rightSource,
     target = target,
     chunkSize = allocatedMemorySize / 3,
     readBufferSize = allocatedMemorySize / 6,
     writeBufferSize = allocatedMemorySize / 3,
-    deleteSourceFiles = true,
+    deleteSourceFiles = deleteSourceFiles,
     comparator = comparator,
     delimiter = delimiter,
     charset = charset,
 )
 
 /**
- * Merges two file into single one.
- * Files must be sorted.
- * Files are read from the end to the beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
+ * Merges two file into single one with fixed allocation.
+ * Source files must be sorted.
+ * The target file content will be in inverse order:
+ * e.g. if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
+ * The [invert] method can be used to rewrite content in direct order.
  *
  * @param [leftSource][Path]
  * @param [rightSource][Path]
@@ -62,14 +71,14 @@ fun mergeFiles(
  * @param [delimiter]
  * @param [charset][Charset]
  */
-fun mergeFiles(
+fun mergeFilesInverse(
     leftSource: Path,
     rightSource: Path,
     target: Path,
     chunkSize: Int,
     readBufferSize: Int,
     writeBufferSize: Int,
-    deleteSourceFiles: Boolean = true,
+    deleteSourceFiles: Boolean = false,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
@@ -111,28 +120,24 @@ fun mergeFiles(
             )
             target.use { res ->
                 var firstLine = true
-                val chunk = LinesChunk()
-                leftSequence.mergeWith(rightSequence, comparator).forEach {
+                leftSequence.mergeWith(rightSequence, comparator).forEach { line ->
                     if (!firstLine) {
-                        chunk.put(delimiterBytes)
+                        res.writeData(delimiterBytes, targetBuffer)
                     }
                     firstLine = false
-                    chunk.put(it.toByteArray(charset))
-                    if (chunk.size() > chunkSize) {
-                        res.insert(data = chunk.toByteArray(), buffer = targetBuffer)
-                        chunk.clear()
-                        if (deleteSourceFiles) {
-                            left.truncate(leftSegmentSize.get())
-                            right.truncate(rightSegmentSize.get())
-                        }
+                    res.writeData(line.toByteArray(charset), targetBuffer)
+                    if (deleteSourceFiles) {
+                        left.truncate(leftSegmentSize.get())
+                        right.truncate(rightSegmentSize.get())
                     }
                 }
-                if (chunk.size() > 0) {
-                    res.insert(data = chunk.toByteArray(), buffer = targetBuffer)
-                    chunk.clear()
+                if (targetBuffer.position() > 0) {
+                    targetBuffer.limit(targetBuffer.position())
+                    targetBuffer.position(0)
+                    res.write(targetBuffer)
                     if (deleteSourceFiles) {
-                        right.truncate(rightSegmentSize.get())
                         left.truncate(leftSegmentSize.get())
+                        right.truncate(rightSegmentSize.get())
                     }
                 }
             }
@@ -150,30 +155,34 @@ fun mergeFiles(
     }
 }
 
-private class LinesChunk {
-    private val lines: MutableList<ByteArray> = mutableListOf()
-    private var size: Int = 0
-
-    fun size() = size
-
-    fun toByteArray(): ByteArray {
-        val res = ByteArray(size)
-        var position = 0
-        lines.indices.reversed().forEach {
-            val bytes = lines[it]
-            System.arraycopy(bytes, 0, res, position, bytes.size)
-            position += bytes.size
-        }
-        return res
+private fun SeekableByteChannel.writeData(data: ByteArray, buffer: ByteBuffer) {
+    var index = 0
+    while (index != -1) {
+        index = put(data, index, buffer)
     }
+}
 
-    fun put(line: ByteArray) {
-        lines.add(line)
-        size += line.size
+private fun SeekableByteChannel.put(
+    data: ByteArray,
+    fromIndex: Int,
+    buffer: ByteBuffer,
+): Int {
+    require(data.isNotEmpty())
+    val length = min(data.size - fromIndex, buffer.capacity() - buffer.position())
+    System.arraycopy(data, fromIndex, buffer.array(), buffer.position(), length)
+    val nextPosition = buffer.position() + length
+    if (nextPosition == buffer.capacity()) {
+        buffer.rewind()
+        write(buffer)
+        buffer.rewind()
+    } else {
+        buffer.position(nextPosition)
     }
-
-    fun clear() {
-        lines.clear()
-        size = 0
+    val nextIndex = fromIndex + length
+    return if (nextIndex == data.size) {
+        -1 // stop
+    } else {
+        check(nextIndex < data.size)
+        nextIndex
     }
 }
