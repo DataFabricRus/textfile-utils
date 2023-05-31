@@ -147,7 +147,8 @@ fun isSorted(
 
 /**
  * Opens or creates file, executes the [block], then closes the channel.
- * Please note: any stream must be closed inside [block], otherwise [java.nio.channels.ClosedChannelException] is expected.
+ * Please note: any IO operation (stream) must be closed (collected) inside the [block],
+ * otherwise [java.nio.channels.ClosedChannelException] is expected.
  */
 fun <X> Path.use(
     vararg options: OpenOption = arrayOf(
@@ -156,6 +157,26 @@ fun <X> Path.use(
     ),
     block: (SeekableByteChannel) -> X,
 ) = channel(*options).use(block)
+
+/**
+ * Opens or creates files, executes the [block], then closes the corresponding channels.
+ * Please note: any IO operation (stream) must be closed (collected) inside the [block],
+ * otherwise [java.nio.channels.ClosedChannelException] is expected.
+ */
+fun <X> Collection<Path>.use(
+    vararg options: OpenOption = arrayOf(
+        StandardOpenOption.READ,
+        StandardOpenOption.WRITE,
+    ),
+    block: (Map<Path, SeekableByteChannel>) -> X,
+): X {
+    val channels = this.associateWith { it.channel(*options) }
+    return try {
+        block(channels)
+    } finally {
+        channels.values.closeAll { IllegalStateException(it) }
+    }
+}
 
 /**
  * Opens or creates a file, returning a seekable byte channel to access the file.
@@ -167,3 +188,17 @@ fun Path.channel(
         StandardOpenOption.WRITE,
     )
 ): SeekableByteChannel = Files.newByteChannel(this, *options)
+
+fun <X : AutoCloseable> Iterable<X>.closeAll(exception: (String) -> Throwable = { Exception(it) }) {
+    val ex = exception("Error while closing")
+    forEach {
+        try {
+            it.close()
+        } catch (ex: Exception) {
+            ex.addSuppressed(ex)
+        }
+    }
+    if (ex.suppressed.isNotEmpty()) {
+        throw ex
+    }
+}

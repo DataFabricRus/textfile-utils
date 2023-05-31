@@ -27,10 +27,9 @@ class FileMergeTest {
         ) {
             val tmp = Files.createFile(Paths.get(target.toAbsolutePath().toString() + ".tmp"))
             mergeFilesInverse(
-                leftSource = leftSource,
-                rightSource = rightSource,
+                sources = setOf(leftSource, rightSource),
                 target = tmp,
-                allocatedMemorySize = allocatedMemorySize,
+                allocatedMemorySizeInBytes = allocatedMemorySize,
                 deleteSourceFiles = deleteSourceFiles,
                 comparator = comparator,
                 delimiter = delimiter,
@@ -106,7 +105,7 @@ class FileMergeTest {
         val res = Files.createTempFile(dir, "res-", ".xxx")
 
         val leftContent = (1..4).map { Random.Default.nextInt() }.sorted()
-        val rightContent = (1..424).map { Random.Default.nextInt() }.sorted()
+        val rightContent = (1..4242).map { Random.Default.nextInt() }.sorted()
         val expectedContent = (leftContent + rightContent).sorted()
         left.writeText(leftContent.joinToString("\n"), Charsets.ISO_8859_1)
         right.writeText(rightContent.joinToString("\n"), Charsets.ISO_8859_1)
@@ -127,6 +126,34 @@ class FileMergeTest {
         Assertions.assertEquals(expectedContent, actualContent)
         Assertions.assertFalse(left.exists())
         Assertions.assertFalse(right.exists())
+    }
+
+    @Test
+    fun `test merge multiple sources`(@TempDir dir: Path) {
+        val target = Files.createTempFile(dir, "res-", ".xxx")
+
+        val content1 = (1..42).map { Random.Default.nextInt() }.sorted()
+        val content2 = (1..42).map { Random.Default.nextInt() }.sorted()
+        val content3 = (1..42).map { Random.Default.nextInt() }.sorted()
+        val content4 = (1..420).map { Random.Default.nextInt() }.sorted()
+        val content5 = (1..4242).map { Random.Default.nextInt() }.sorted()
+        val sources = sequenceOf(content1, content2, content3, content4, content5).mapIndexed { index, content ->
+            val source = Files.createTempFile(dir, "source-$index", ".xxx")
+            source.writeText(content.joinToString("\n"))
+            source
+        }.toSet()
+
+        mergeFilesInverse(
+            sources = sources,
+            target = target,
+            deleteSourceFiles = true,
+            comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed(),
+            charset = Charset.defaultCharset(),
+        )
+
+        val expected = (content1 + content2 + content3 + content4 + content5).sorted().reversed().joinToString("\n")
+        val actual = target.readText()
+        Assertions.assertEquals(expected, actual)
     }
 
 }
