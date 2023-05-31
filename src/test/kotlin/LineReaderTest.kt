@@ -209,6 +209,37 @@ internal class LineReaderTest {
         testReadFromRegion(dir, 42424, true)
     }
 
+    @Test
+    fun `test max line length checking`(@TempDir dir: Path) {
+        val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
+        file.writeText(testData, Charsets.UTF_8)
+        // big buffer
+        Assertions.assertThrows(IllegalStateException::class.java) {
+            Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
+                channel.readLines(
+                    direct = false,
+                    startPositionInclusive = 0,
+                    endPositionExclusive = file.fileSize(),
+                    delimiter = "||",
+                    maxLineLengthInBytes = 2,
+                ).toList()
+            }
+        }
+        // small buffer
+        Assertions.assertThrows(IllegalStateException::class.java) {
+            Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
+                channel.readLines(
+                    direct = false,
+                    startPositionInclusive = 0,
+                    endPositionExclusive = file.fileSize(),
+                    delimiter = "++",
+                    maxLineLengthInBytes = 2,
+                    buffer = ByteBuffer.allocate(3),
+                ).toList()
+            }
+        }
+    }
+
     private fun testReverseReadSparseFile(dir: Path, delimiter: String, charset: Charset, bufferSize: Int) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
         val given =

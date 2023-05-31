@@ -14,27 +14,28 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Reads text lines from the given area of file.
+ * Reads text [String]-lines from the given area of file.
  * The area is set by the specified [startPositionInclusive] and [endPositionExclusive]
  *
  * @param [startPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
  * @param [endPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
  * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
  * otherwise the reading is reversed (from the end to start)
- * @param [buffer][ByteBuffer] to use while reading data from file;
- * the memory consumption is approximately three times the buffer size,
- * since bytes from the buffer transforms to [String] array before emit (assuming each [String] size is about `~ 2 * getBytes() + X`)
- * @param [delimiter] lines-separator
- * @param [charset][Charset]
- * @param [listener] function that accepts current position; to monitor the process
- * @param [coroutineName] the name of coroutine which processes physical (NIO) reading
+ * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`
+ * @param [delimiter] lines-separator; default `\n`
+ * @param [listener] function that accepts current position; to monitor the process, no listener by default
+ * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
+ * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack when there is no delimiter for example, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
- * @return [Sequence] of lines starting from the end of segment to the beginning
+ * @return [Sequence]<[String]> of lines starting from the end of segment to the beginning
+ * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */
 fun SeekableByteChannel.readLines(
     startPositionInclusive: Long = 0,
@@ -43,10 +44,12 @@ fun SeekableByteChannel.readLines(
     listener: (Long) -> Unit = {},
     direct: Boolean = true,
     buffer: ByteBuffer = ByteBuffer.allocate(8192),
+    maxLineLengthInBytes: Int = 8192,
     charset: Charset = Charsets.UTF_8,
-    coroutineName: String = "AsyncLineReader",
     singleOperationTimeoutInMs: Long = 60 * 1000L,
     internalQueueSize: Int = 1024,
+    coroutineName: String = "AsyncLineReader",
+    coroutineContext: CoroutineContext = Dispatchers.IO,
 ): Sequence<String> {
     require(buffer.capacity() > 0)
     require(delimiter.isNotEmpty())
@@ -65,7 +68,15 @@ fun SeekableByteChannel.readLines(
         if (bytes.isEmpty()) {
             return emptySequence()
         }
-        val lines = bytes.toString(charset).split(delimiter)
+        val lines = bytes.toString(charset).split(delimiter).onEach {
+            check(
+                bytes.size <= maxLineLengthInBytes &&
+                        it.length <= maxLineLengthInBytes &&
+                        it.toByteArray(charset).size <= maxLineLengthInBytes
+            ) {
+                "The line is too long (max length = $maxLineLengthInBytes, actual length = ${it.toByteArray(charset).size}"
+            }
+        }
         return if (direct) {
             lines.asSequence()
         } else {
@@ -83,12 +94,33 @@ fun SeekableByteChannel.readLines(
         listener = listener,
         direct = direct,
         buffer = buffer,
-        coroutineName = coroutineName,
+        maxLineLengthInBytes = maxLineLengthInBytes,
         singleOperationTimeoutInMs = singleOperationTimeoutInMs,
-        internalQueueSize = internalQueueSize
+        internalQueueSize = internalQueueSize,
+        coroutineName = coroutineName,
+        coroutineContext = coroutineContext,
     ).map { it.toString(charset) }
 }
 
+/**
+ * Reads text [ByteArray]-lines from the given area of file.
+ * The area is set by the specified [startPositionInclusive] and [endPositionExclusive]
+ *
+ * @param [startPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
+ * @param [endPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
+ * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
+ * otherwise the reading is reversed (from the end to start)
+ * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`
+ * @param [delimiter] lines-separator; default `\n`
+ * @param [listener] function that accepts current position; to monitor the process, no listener by default
+ * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
+ * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack when there is no delimiter for example, default = `8192`
+ * @param [singleOperationTimeoutInMs][Long] to prevent hangs
+ * @param [internalQueueSize][Int] to hold lines before emitting
+ * @return [Sequence]<[ByteArray]> of lines starting from the end of segment to the beginning
+ * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
+ */
 fun SeekableByteChannel.readLinesAsByteArrays(
     startPositionInclusive: Long = 0,
     endPositionExclusive: Long = size(),
@@ -96,9 +128,11 @@ fun SeekableByteChannel.readLinesAsByteArrays(
     listener: (Long) -> Unit = {},
     direct: Boolean = true,
     buffer: ByteBuffer = ByteBuffer.allocate(8192),
-    coroutineName: String = "AsyncLineReader",
+    maxLineLengthInBytes: Int = 8192,
     singleOperationTimeoutInMs: Long = 60 * 1000L,
     internalQueueSize: Int = 1024,
+    coroutineName: String = "AsyncLineReader",
+    coroutineContext: CoroutineContext = Dispatchers.IO,
 ): Sequence<ByteArray> {
     val reader = LineReader(
         source = this,
@@ -108,10 +142,11 @@ fun SeekableByteChannel.readLinesAsByteArrays(
         listener = listener,
         buffer = buffer,
         delimiter = delimiter,
+        maxLineLength = maxLineLengthInBytes,
         itemTimeoutInMs = singleOperationTimeoutInMs,
         queueSize = internalQueueSize,
     )
-    (CoroutineScope(Dispatchers.IO) + CoroutineName(coroutineName)).launch { reader.run() }
+    (CoroutineScope(coroutineContext) + CoroutineName(coroutineName)).launch { reader.run() }
     return reader.lines()
 }
 
@@ -127,6 +162,7 @@ internal class LineReader(
     private val buffer: ByteBuffer,
     private val itemTimeoutInMs: Long,
     private val delimiter: ByteArray,
+    private val maxLineLength: Int,
     queueSize: Int,
 ) {
 
@@ -211,8 +247,9 @@ internal class LineReader(
     ): Pair<List<ByteArray>, ByteArray> {
         val res = split(remainder, remainder.size, this, length, delimiter)
         check(res.isNotEmpty())
-        val lines = res.asSequence().take(res.size - 1).map { it.toByteArray() }
+        val lines = res.asSequence().take(res.size - 1).map { it.toByteArray() }.onEach { checkLine(it) }
         val nextRemainder = res[res.size - 1].toByteArray()
+        checkLine(nextRemainder)
         return lines.toList() to nextRemainder
     }
 
@@ -222,9 +259,16 @@ internal class LineReader(
     ): Pair<List<ByteArray>, ByteArray> {
         val res = split(this, length, remainder, remainder.size, delimiter)
         check(res.isNotEmpty())
-        val lines = res.asSequence().drop(1).map { it.toByteArray() }
+        val lines = res.asSequence().drop(1).map { it.toByteArray() }.onEach { checkLine(it) }
         val nextRemainder = res[0].toByteArray()
+        checkLine(nextRemainder)
         return lines.toList() to nextRemainder
+    }
+
+    private fun checkLine(line: ByteArray) {
+        check(line.size <= maxLineLength) {
+            "The line is too long (max = $maxLineLength). Position = ${source.position()}, line-length = ${line.size}, direct = $direct"
+        }
     }
 
     companion object {

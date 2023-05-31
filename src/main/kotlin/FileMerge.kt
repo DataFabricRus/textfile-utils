@@ -55,6 +55,7 @@ fun mergeFilesInverse(
 /**
  * Merges two file into single one with fixed allocation.
  * Source files must be sorted.
+ * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
  * The target file content will be in inverse order:
  * e.g. if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
  * The [invert] method can be used to rewrite content in direct order.
