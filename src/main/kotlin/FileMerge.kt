@@ -10,8 +10,6 @@ import kotlin.io.path.fileSize
 import kotlin.math.max
 import kotlin.math.min
 
-const val minWriteBufferSizeInBytes = 8192
-const val minReadBufferSizeInBytes = 1024
 
 /**
  * Merges files into single one with fixed allocation.
@@ -19,6 +17,7 @@ const val minReadBufferSizeInBytes = 1024
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
  * The target file will be inverse: e.g. if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
  * The [invert] method can be used to rewrite content in direct order.
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
  * The chosen ratio is [allocatedMemorySizeInBytes] = `2 * x * (sourceFileSize{1} + ... sourceFileSize{N}) = 2 * x * targetFileSize`
  * and has no any mathematical or experimental basis and is most likely not optimal, but seems to be reasonable.
@@ -40,17 +39,17 @@ fun mergeFilesInverse(
     target: Path,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
-    allocatedMemorySizeInBytes: Int = 2 * minWriteBufferSizeInBytes,
+    allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
     deleteSourceFiles: Boolean = false,
     charset: Charset = Charsets.UTF_8,
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
-    val writeBufferSize = max((allocatedMemorySizeInBytes / 2.0).toInt(), minWriteBufferSizeInBytes)
-    val writeBuffer = ByteBuffer.allocate(writeBufferSize)
+    val writeBufferSize = max((allocatedMemorySizeInBytes / 2.0).toInt(), MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES)
+    val writeBuffer = ByteBuffer.allocateDirect(writeBufferSize)
     val readFilesSizeRatio = allocatedMemorySizeInBytes / (sources.sumOf { it.fileSize() } * 2.0)
     val sourceBuffers = sources.associateWith { file ->
-        val size = max((readFilesSizeRatio * file.fileSize()).toInt(), minReadBufferSizeInBytes)
-        ByteBuffer.allocate(size)
+        val size = max((readFilesSizeRatio * file.fileSize()).toInt(), MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES)
+        ByteBuffer.allocateDirect(size)
     }
 
     mergeFilesInverse(
@@ -72,6 +71,7 @@ fun mergeFilesInverse(
  * The target file content will be in inverse order:
  * e.g. if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
  * The [invert] method can be used to rewrite content in direct order.
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
@@ -88,21 +88,21 @@ fun mergeFilesInverse(
     target: Path,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
-    sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocate(minWriteBufferSizeInBytes) },
-    targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocate(minWriteBufferSizeInBytes) },
+    sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
+    targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     deleteSourceFiles: Boolean = false,
     charset: Charset = Charsets.UTF_8,
 ) {
-    require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
+    require(sources.size > 1) { "Number of given sources (${sources.size}) must be greater than 1" }
     val readBuffers = sources.associateWith { file ->
         val buffer = sourceBuffer(file)
-        require(buffer.capacity() >= minReadBufferSizeInBytes) {
+        require(buffer.capacity() >= MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES) {
             "Specified read buffer size is too small: ${buffer.capacity()}"
         }
         buffer
     }
     val writeBuffer = targetBuffer(target)
-    require(writeBuffer.capacity() >= minWriteBufferSizeInBytes) {
+    require(writeBuffer.capacity() >= MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) {
         "Specified write buffer size is too small: ${writeBuffer.capacity()}"
     }
 
@@ -150,7 +150,7 @@ fun mergeFilesInverse(
     if (deleteSourceFiles) {
         segmentSizes.forEach { (file, segment) ->
             check(file.fileSize() == 0L) {
-                "Source file $file must be empty, real-size = ${file.fileSize()}, segment-size = $segment"
+                "Source file <$file> must be empty; real-size = ${file.fileSize()}, segment-size = $segment"
             }
             file.deleteExisting()
         }
@@ -171,8 +171,8 @@ private fun SeekableByteChannel.writeData(
 ): Int {
     require(data.isNotEmpty())
     val length = min(data.size - fromIndex, buffer.capacity() - buffer.position())
-    System.arraycopy(data, fromIndex, buffer.array(), buffer.position(), length)
-    val nextPosition = buffer.position() + length
+    buffer.put(data, fromIndex, length)
+    val nextPosition = buffer.position()
     if (nextPosition == buffer.capacity()) {
         buffer.rewind()
         write(buffer)

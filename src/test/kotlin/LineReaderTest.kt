@@ -49,7 +49,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position1.get(),
                 listener = { position1.set(it) },
-                buffer = ByteBuffer.allocate(7),
+                buffer = ByteBuffer.allocateDirect(7),
                 delimiter = ","
             ).map { it.toDouble() }.toList()
         }
@@ -67,7 +67,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position2.get(),
                 listener = { position2.set(it) },
-                buffer = ByteBuffer.allocate(7)
+                buffer = ByteBuffer.allocateDirect(7)
             ).toList()
         }
         Assertions.assertEquals(0, position2.get())
@@ -85,7 +85,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position.get(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(42),
+                buffer = ByteBuffer.allocateDirect(42),
                 charset = Charsets.UTF_32LE,
                 delimiter = ";",
             ).toList()
@@ -108,7 +108,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position.get(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(424242),
+                buffer = ByteBuffer.allocateDirect(424242),
                 delimiter = "\n",
                 charset = Charsets.UTF_8,
             ).onEach { channel.truncate(position.get()) }.toList()
@@ -131,7 +131,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position.get(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(424242),
+                buffer = ByteBuffer.allocateDirect(424242),
                 delimiter = ";",
                 charset = Charsets.UTF_16BE,
             ).toList()
@@ -151,7 +151,7 @@ internal class LineReaderTest {
                     direct = false,
                     startPositionInclusive = 0,
                     endPositionExclusive = 42,
-                    buffer = ByteBuffer.allocate(4)
+                    buffer = ByteBuffer.allocateDirect(4)
                 )
             }.toList()
         }
@@ -169,7 +169,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position.get(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(4),
+                buffer = ByteBuffer.allocateDirect(4),
                 delimiter = ";",
                 charset = charset,
             ).toList()
@@ -234,7 +234,7 @@ internal class LineReaderTest {
                     endPositionExclusive = file.fileSize(),
                     delimiter = "++",
                     maxLineLengthInBytes = 2,
-                    buffer = ByteBuffer.allocate(3),
+                    buffer = ByteBuffer.allocateDirect(3),
                 ).toList()
             }
         }
@@ -253,7 +253,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = position.get(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(bufferSize),
+                buffer = ByteBuffer.allocateDirect(bufferSize),
                 delimiter = delimiter,
                 charset = charset,
             ).toList().reversed()
@@ -275,7 +275,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 31,
                 endPositionExclusive = 94,
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(bufferSize),
+                buffer = ByteBuffer.allocateDirect(bufferSize),
                 delimiter = ";",
                 charset = Charsets.UTF_8,
             ).toList()
@@ -298,7 +298,7 @@ internal class LineReaderTest {
                 startPositionInclusive = 0,
                 endPositionExclusive = file.fileSize(),
                 listener = { position.set(it) },
-                buffer = ByteBuffer.allocate(bufferSize),
+                buffer = ByteBuffer.allocateDirect(bufferSize),
                 charset = charset,
                 delimiter = ";",
             ).toList()

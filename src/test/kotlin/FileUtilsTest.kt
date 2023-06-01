@@ -13,7 +13,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.random.Random
 
-class FileUtilsTest {
+internal class FileUtilsTest {
 
     companion object {
         val testTxt = """
@@ -57,7 +57,7 @@ class FileUtilsTest {
             it.insert(
                 data = insertContent.joinToString("\n", "", "\n").toByteArray(),
                 beforePosition = 0,
-                buffer = ByteBuffer.allocate(42),
+                buffer = ByteBuffer.allocateDirect(42),
             )
         }
         val expectedContent = insertContent + originalContent
@@ -76,7 +76,7 @@ class FileUtilsTest {
             it.insert(
                 data = insertContent.joinToString("\n", "\n", "").toByteArray(),
                 beforePosition = file.fileSize(),
-                buffer = ByteBuffer.allocate(42),
+                buffer = ByteBuffer.allocateDirect(42),
             )
         }
         val expectedContent = originalContent + insertContent
@@ -201,7 +201,11 @@ class FileUtilsTest {
         val file = Files.createTempFile(dir, "test-insert-", ".xxx")
         file.writeText(testTxt)
         file.use {
-            it.insert(data = txtBefore.toByteArray(), beforePosition = 0, buffer = ByteBuffer.allocate(bufferSize))
+            it.insert(
+                data = txtBefore.toByteArray(),
+                beforePosition = 0,
+                buffer = ByteBuffer.allocateDirect(bufferSize)
+            )
         }
         val actualText = file.readText()
         Assertions.assertEquals(txtBefore + testTxt, actualText)
@@ -210,7 +214,7 @@ class FileUtilsTest {
     private fun testInsertAtTheBeginningOfEmptyFile(dir: Path, bufferSize: Int) {
         val file = Files.createTempFile(dir, "test-insert-", ".xxx")
         file.use {
-            it.insert(data = testTxt.toByteArray(), beforePosition = 0, buffer = ByteBuffer.allocate(bufferSize))
+            it.insert(data = testTxt.toByteArray(), beforePosition = 0, buffer = ByteBuffer.allocateDirect(bufferSize))
         }
         val actualText = file.readText()
         Assertions.assertEquals(testTxt, actualText)
@@ -245,7 +249,7 @@ class FileUtilsTest {
             it.insert(
                 data = insertContentAsByteArray,
                 beforePosition = insertPositionInBytes,
-                buffer = ByteBuffer.allocate(bufferSize),
+                buffer = ByteBuffer.allocateDirect(bufferSize),
             )
         }
         val actualContentAsString = file.readText(charset)

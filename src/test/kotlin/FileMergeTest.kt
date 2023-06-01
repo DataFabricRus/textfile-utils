@@ -12,7 +12,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.random.Random
 
-class FileMergeTest {
+internal class FileMergeTest {
 
     companion object {
         fun mergeFiles(

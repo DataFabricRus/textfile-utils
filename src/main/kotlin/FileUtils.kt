@@ -19,9 +19,9 @@ import kotlin.io.path.deleteExisting
 fun SeekableByteChannel.insert(
     data: ByteArray,
     beforePosition: Long = 0,
-    buffer: ByteBuffer = ByteBuffer.allocate(8192),
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
 ) {
-    require(buffer.array().isNotEmpty())
+    require(buffer.capacity() > 0)
     if (data.isEmpty()) {
         return
     }
@@ -29,12 +29,17 @@ fun SeekableByteChannel.insert(
         buffer.rewind()
         position(beforePosition)
         var readBytes = read(buffer)
-        val dst = buffer.array()
         if (readBytes == -1) { // empty file
             readBytes = 0
         }
-        System.arraycopy(dst, 0, dst, data.size, readBytes)
-        System.arraycopy(data, 0, dst, 0, data.size)
+
+        buffer.rewind()
+        val tmp = ByteArray(readBytes)
+        buffer.get(tmp)
+        buffer.position(data.size)
+        buffer.put(tmp)
+        buffer.rewind()
+        buffer.put(data)
         buffer.rewind()
         buffer.limit(data.size + readBytes)
         position(beforePosition)
@@ -123,7 +128,7 @@ fun isSorted(
     comparator: Comparator<String> = defaultComparator<String>(),
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
-    buffer: ByteBuffer = ByteBuffer.allocate(8192),
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
 ): Boolean = file.use(StandardOpenOption.READ) {
     var prev: String? = null
     it.readLines(

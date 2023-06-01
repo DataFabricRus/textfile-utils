@@ -8,7 +8,6 @@ import kotlinx.coroutines.plus
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
-import java.util.Arrays
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
@@ -20,7 +19,8 @@ import kotlin.math.min
 
 /**
  * Reads text [String]-lines from the given area of file.
- * The area is set by the specified [startPositionInclusive] and [endPositionExclusive]
+ * The area is set by the specified [startPositionInclusive] and [endPositionExclusive].
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
  * @param [startPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
  * @param [endPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
@@ -43,11 +43,11 @@ fun SeekableByteChannel.readLines(
     delimiter: String = "\n",
     listener: (Long) -> Unit = {},
     direct: Boolean = true,
-    buffer: ByteBuffer = ByteBuffer.allocate(8192),
-    maxLineLengthInBytes: Int = 8192,
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
+    maxLineLengthInBytes: Int = LINE_READER_MAX_LENGTH_IN_BYTES,
     charset: Charset = Charsets.UTF_8,
-    singleOperationTimeoutInMs: Long = 60 * 1000L,
-    internalQueueSize: Int = 1024,
+    singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
+    internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineName: String = "AsyncLineReader",
     coroutineContext: CoroutineContext = Dispatchers.IO,
 ): Sequence<String> {
@@ -63,8 +63,10 @@ fun SeekableByteChannel.readLines(
         buffer.rewind()
         buffer.limit(areaSize.toInt())
         this.read(buffer)
+        buffer.rewind()
         listener(if (direct) endPositionExclusive else startPositionInclusive)
-        val bytes = Arrays.copyOf(buffer.array(), areaSize.toInt())
+        val bytes = ByteArray(areaSize.toInt())
+        buffer.get(bytes)
         if (bytes.isEmpty()) {
             return emptySequence()
         }
@@ -104,7 +106,8 @@ fun SeekableByteChannel.readLines(
 
 /**
  * Reads text [ByteArray]-lines from the given area of file.
- * The area is set by the specified [startPositionInclusive] and [endPositionExclusive]
+ * The area is set by the specified [startPositionInclusive] and [endPositionExclusive].
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
  * @param [startPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
  * @param [endPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
@@ -127,10 +130,10 @@ fun SeekableByteChannel.readLinesAsByteArrays(
     delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
     listener: (Long) -> Unit = {},
     direct: Boolean = true,
-    buffer: ByteBuffer = ByteBuffer.allocate(8192),
-    maxLineLengthInBytes: Int = 8192,
-    singleOperationTimeoutInMs: Long = 60 * 1000L,
-    internalQueueSize: Int = 1024,
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
+    maxLineLengthInBytes: Int = LINE_READER_MAX_LENGTH_IN_BYTES,
+    singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
+    internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineName: String = "AsyncLineReader",
     coroutineContext: CoroutineContext = Dispatchers.IO,
 ): Sequence<ByteArray> {
@@ -202,7 +205,7 @@ internal class LineReader(
             source.position(startIndex)
             source.read(buffer)
             listener(endIndex)
-            val linesToRemainder = buffer.array().directLines(length = readBytes, remainder = remainder)
+            val linesToRemainder = buffer.directLines(length = readBytes, remainder = ByteBuffer.wrap(remainder))
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.forEach {
@@ -228,7 +231,8 @@ internal class LineReader(
             source.position(startIndex)
             source.read(buffer)
             listener(startIndex)
-            val linesToRemainder = buffer.array().reverseLines(length = readBytes, remainder = remainder)
+            buffer.rewind()
+            val linesToRemainder = buffer.reverseLines(length = readBytes, remainder = ByteBuffer.wrap(remainder))
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.indices.reversed().forEach {
@@ -241,11 +245,11 @@ internal class LineReader(
         }
     }
 
-    private fun ByteArray.directLines(
+    private fun ByteBuffer.directLines(
         length: Int,
-        remainder: ByteArray
+        remainder: ByteBuffer
     ): Pair<List<ByteArray>, ByteArray> {
-        val res = split(remainder, remainder.size, this, length, delimiter)
+        val res = split(remainder, remainder.capacity(), this, length, delimiter)
         check(res.isNotEmpty())
         val lines = res.asSequence().take(res.size - 1).map { it.toByteArray() }.onEach { checkLine(it) }
         val nextRemainder = res[res.size - 1].toByteArray()
@@ -253,11 +257,11 @@ internal class LineReader(
         return lines.toList() to nextRemainder
     }
 
-    private fun ByteArray.reverseLines(
+    private fun ByteBuffer.reverseLines(
         length: Int,
-        remainder: ByteArray
+        remainder: ByteBuffer
     ): Pair<List<ByteArray>, ByteArray> {
-        val res = split(this, length, remainder, remainder.size, delimiter)
+        val res = split(this, length, remainder, remainder.capacity(), delimiter)
         check(res.isNotEmpty())
         val lines = res.asSequence().drop(1).map { it.toByteArray() }.onEach { checkLine(it) }
         val nextRemainder = res[0].toByteArray()
@@ -274,9 +278,9 @@ internal class LineReader(
     companion object {
 
         private fun split(
-            left: ByteArray,
+            left: ByteBuffer,
             leftSize: Int,
-            right: ByteArray,
+            right: ByteBuffer,
             rightSize: Int,
             delimiter: ByteArray
         ): List<List<Byte>> {
@@ -300,9 +304,9 @@ internal class LineReader(
         }
 
         private fun isDelimiter(
-            left: ByteArray,
+            left: ByteBuffer,
             leftSize: Int,
-            right: ByteArray,
+            right: ByteBuffer,
             rightSize: Int,
             index: Int,
             delimiter: ByteArray
@@ -318,7 +322,7 @@ internal class LineReader(
             return true
         }
 
-        private fun get(left: ByteArray, leftSize: Int, right: ByteArray, index: Int): Byte {
+        private fun get(left: ByteBuffer, leftSize: Int, right: ByteBuffer, index: Int): Byte {
             return if (index < leftSize) {
                 left[index]
             } else {
