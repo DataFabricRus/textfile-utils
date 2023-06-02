@@ -55,16 +55,18 @@ fun SeekableByteChannel.readLines(
     require(delimiter.isNotEmpty())
     require(startAreaPositionInclusive in 0..endAreaPositionExclusive)
     require(endAreaPositionExclusive <= size())
-    val areaSize = endAreaPositionExclusive - startAreaPositionInclusive
+    val bomSymbols = charset.bomSymbols()
+    val startPosition = startAreaPositionInclusive + bomSymbols.size
+    val areaSize = endAreaPositionExclusive - startPosition
     if (buffer.capacity() >= areaSize) {
-        listener(if (direct) startAreaPositionInclusive else endAreaPositionExclusive)
+        listener(if (direct) startPosition else endAreaPositionExclusive)
         // read everything into memory
-        this.position(startAreaPositionInclusive)
+        this.position(startPosition)
         buffer.rewind()
         buffer.limit(areaSize.toInt())
         this.read(buffer)
         buffer.rewind()
-        listener(if (direct) endAreaPositionExclusive - 1 else startAreaPositionInclusive)
+        listener(if (direct) endAreaPositionExclusive - 1 else startPosition)
         val bytes = ByteArray(areaSize.toInt())
         buffer.get(bytes)
         if (bytes.isEmpty()) {
@@ -90,9 +92,9 @@ fun SeekableByteChannel.readLines(
         }
     }
     return readLinesAsByteArrays(
-        startAreaPositionInclusive = startAreaPositionInclusive,
+        startAreaPositionInclusive = startAreaPositionInclusive + bomSymbols.size,
         endAreaPositionExclusive = endAreaPositionExclusive,
-        delimiter = delimiter.toSymbolBytes(charset),
+        delimiter = delimiter.bytes(charset),
         listener = listener,
         direct = direct,
         buffer = buffer,
@@ -144,9 +146,9 @@ fun SeekableByteChannel.readLinesAsByteArrays(
         endAreaPositionExclusive = endAreaPositionExclusive,
         listener = listener,
         buffer = buffer,
+        itemTimeoutInMs = singleOperationTimeoutInMs,
         delimiter = delimiter,
         maxLineLength = maxLineLengthInBytes,
-        itemTimeoutInMs = singleOperationTimeoutInMs,
         queueSize = internalQueueSize,
     )
     (CoroutineScope(coroutineContext) + CoroutineName(coroutineName)).launch {

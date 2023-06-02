@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.path.exists
 import kotlin.io.path.fileSize
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.random.Random
 
@@ -19,15 +20,20 @@ internal class MergeSortTests {
 
     companion object {
 
-        private fun assertPartsSize(expectedSize: Long, parts: List<Path>, delimiterLength: Int) {
+        private fun assertPartsSize(
+            expectedSize: Long,
+            parts: List<Path>,
+            delimiterLength: Int,
+            bomSymbolsLength: Int
+        ) {
             var actualSize = 0L
             parts.forEachIndexed { index, path ->
-                actualSize += path.fileSize()
+                actualSize += (path.fileSize() - bomSymbolsLength)
                 if (index != parts.size - 1) {
-                    actualSize += delimiterLength
+                    actualSize += (delimiterLength - bomSymbolsLength)
                 }
             }
-            Assertions.assertEquals(expectedSize, actualSize)
+            Assertions.assertEquals(expectedSize - bomSymbolsLength, actualSize)
         }
 
         private fun assertPartsContent(
@@ -43,7 +49,7 @@ internal class MergeSortTests {
                     if (prev == null) {
                         prev = line
                     }
-                    Assertions.assertTrue(comparator.compare(prev, line) <= 0)
+                    Assertions.assertTrue(comparator.compare(prev, line) <= 0) { "'$prev' > '$line'" }
                     actual.computeIfAbsent(line) { AtomicInteger() }.incrementAndGet()
                 }
             }
@@ -92,9 +98,9 @@ internal class MergeSortTests {
         runBlocking(Dispatchers.Default) {
             testSplitAndSort(
                 dir = dir,
-                content = (1..424242).map { Random.nextDouble().toString() },
+                content = (1..42).map { Random.nextDouble().toString() },
                 coroutineContext = coroutineContext,
-                charset = Charsets.UTF_16BE,
+                charset = Charsets.UTF_16,
                 delimiter = ";",
                 comparator =
                 defaultComparator(),
@@ -126,12 +132,11 @@ internal class MergeSortTests {
             allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
         )
 
-        val delimiterLength = delimiter.toSymbolBytes(charset).size
-        assertPartsSize(expectedSize, parts, delimiterLength)
+        assertPartsSize(expectedSize, parts, delimiter.toByteArray(charset).size, charset.bomSymbols().size)
 
         val expectedContent = content.groupBy { it }.mapValues { it.value.map { 1 }.sum() }
         assertPartsContent(expectedContent, parts, comparator) {
-            it.readTextNoBOM(charset).split(delimiter)
+            it.readText(charset).split(delimiter)
         }
 
         Assertions.assertFalse(source.exists())

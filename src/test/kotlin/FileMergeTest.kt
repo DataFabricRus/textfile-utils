@@ -139,7 +139,7 @@ internal class FileMergeTest {
         val content5 = (1..4242).map { Random.Default.nextInt() }.sorted()
         val sources = sequenceOf(content1, content2, content3, content4, content5).mapIndexed { index, content ->
             val source = Files.createTempFile(dir, "source-$index", ".xxx")
-            source.writeText(content.joinToString("\n"))
+            source.writeText(content.joinToString("\n"), Charsets.UTF_16)
             source
         }.toSet()
 
@@ -148,11 +148,11 @@ internal class FileMergeTest {
             target = target,
             deleteSourceFiles = true,
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed(),
-            charset = Charset.defaultCharset(),
+            charset = Charsets.UTF_16,
         )
 
         val expected = (content1 + content2 + content3 + content4 + content5).sorted().reversed().joinToString("\n")
-        val actual = target.readText()
+        val actual = target.readText(Charsets.UTF_16)
         Assertions.assertEquals(expected, actual)
     }
 

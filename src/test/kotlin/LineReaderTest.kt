@@ -33,8 +33,18 @@ internal class LineReaderTest {
     }
 
     @Test
+    fun `test direct read (small buffer, utf16, semicolon)`(@TempDir dir: Path) {
+        testDirectRead(dir, Charsets.UTF_16, 4)
+    }
+
+    @Test
     fun `test direct read file lines(big buffer, utf16le, semicolon)`(@TempDir dir: Path) {
         testDirectRead(dir, Charsets.UTF_32, 424242)
+    }
+
+    @Test
+    fun `test direct read (big buffer, utf16, semicolon)`(@TempDir dir: Path) {
+        testDirectRead(dir, Charsets.UTF_16, 424242)
     }
 
     @Test

@@ -8,7 +8,6 @@ import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.deleteExisting
-import kotlin.io.path.readText
 
 /**
  * Inserts the given [data] at the [specified position][beforePosition] of channel.
@@ -94,18 +93,20 @@ fun invert(
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
 ) {
+    val bomSymbols = charset.bomSymbols()
+    val delimiterBytes = delimiter.bytes(charset)
     Files.newByteChannel(target, StandardOpenOption.WRITE).use { dst ->
         Files.newByteChannel(source, StandardOpenOption.READ, StandardOpenOption.WRITE).use { src ->
+            dst.write(ByteBuffer.wrap(bomSymbols))
             var position = src.size()
-            val delimiterBytes = delimiter.toSymbolBytes(charset)
             src.readLinesAsByteArrays(
-                startAreaPositionInclusive = 0,
+                startAreaPositionInclusive = bomSymbols.size.toLong(),
                 endAreaPositionExclusive = src.size(),
                 delimiter = delimiterBytes,
                 direct = false,
-            ).forEach { b ->
-                position -= b.size
-                dst.write(ByteBuffer.wrap(b))
+            ).forEach { line ->
+                position -= line.size
+                dst.write(ByteBuffer.wrap(line))
                 if (position != 0L) {
                     position -= delimiterBytes.size
                     dst.write(ByteBuffer.wrap(delimiterBytes))
@@ -209,20 +210,15 @@ fun <X : AutoCloseable> Iterable<X>.closeAll(exception: (String) -> Throwable = 
     }
 }
 
+fun String.bytes(charset: Charset): ByteArray {
+    val bom = charset.bomSymbols().size
+    return if (bom == 0) {
+        toByteArray(charset)
+    } else {
+        toByteArray(charset).drop(bom).toByteArray()
+    }
+}
+
+fun Charset.bomSymbols(): ByteArray = if (this == Charsets.UTF_16) byteArrayOf(-2, -1) else byteArrayOf()
+
 internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
-
-internal fun String.toSymbolBytes(charset: Charset): ByteArray {
-    val res = toByteArray(charset)
-    if (charset == Charsets.UTF_16) {
-        return res.drop(2).toByteArray()
-    }
-    return res
-}
-
-internal fun Path.readTextNoBOM(charset: Charset): String {
-    val res = readText(charset)
-    if (res.startsWith('\uFEFF')) {
-        return res.substring(1)
-    }
-    return res
-}

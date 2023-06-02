@@ -106,7 +106,8 @@ fun mergeFilesInverse(
         "Specified write buffer size is too small: ${writeBuffer.capacity()}"
     }
 
-    val delimiterBytes = delimiter.toSymbolBytes(charset)
+    val bomSymbols = charset.bomSymbols()
+    val delimiterBytes = delimiter.bytes(charset)
     val segmentSizes = sources.associateWith { file -> AtomicLong(file.fileSize()) }
 
     target.use { res ->
@@ -127,12 +128,15 @@ fun mergeFilesInverse(
                     coroutineName = "LeftLinesReader[$file]"
                 )
             }
+            if (bomSymbols.isNotEmpty()) {
+                res.write(ByteBuffer.wrap(bomSymbols))
+            }
             mergeSequences(inputs.map { it.second }, comparator).forEach { line ->
                 if (!firstLine) {
                     res.writeData(delimiterBytes, writeBuffer)
                 }
                 firstLine = false
-                res.writeData(line.toByteArray(charset), writeBuffer)
+                res.writeData(line.bytes(charset), writeBuffer)
                 if (deleteSourceFiles) {
                     source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
                 }
@@ -149,8 +153,8 @@ fun mergeFilesInverse(
     }
     if (deleteSourceFiles) {
         segmentSizes.forEach { (file, segment) ->
-            check(file.fileSize() == 0L) {
-                "Source file <$file> must be empty; real-size = ${file.fileSize()}, segment-size = $segment"
+            check(file.fileSize() == bomSymbols.size.toLong()) {
+                "Source file <${file.fileName}> must be empty; real-size = ${file.fileSize()}, segment-size = $segment"
             }
             file.deleteExisting()
         }
