@@ -92,7 +92,7 @@ inline fun <reified X> mergeIterators(
 
 
 /**
- * @throws ClassCastException on invoke
+ * @throws ClassCastException
  */
 @Throws(ClassCastException::class)
 @Suppress("UNCHECKED_CAST")

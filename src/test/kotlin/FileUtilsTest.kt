@@ -139,7 +139,7 @@ internal class FileUtilsTest {
         val sourceContent = (1..42).map { Random.nextDouble() }
         source.writeText(sourceContent.joinToString(";"), Charsets.UTF_8)
 
-        invert(source = source, target = target, delimiter = ";", deleteSourceFiles = true)
+        invert(source = source, target = target, delimiter = ";", deleteSourceFiles = true, charset = Charsets.UTF_8)
 
         val targetContent = target.readText(Charsets.UTF_8).split(";").map { it.toDouble() }
         Assertions.assertEquals(sourceContent.reversed(), targetContent)

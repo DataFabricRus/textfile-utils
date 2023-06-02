@@ -106,7 +106,7 @@ fun mergeFilesInverse(
         "Specified write buffer size is too small: ${writeBuffer.capacity()}"
     }
 
-    val delimiterBytes = delimiter.toByteArray(charset)
+    val delimiterBytes = delimiter.toSymbolBytes(charset)
     val segmentSizes = sources.associateWith { file -> AtomicLong(file.fileSize()) }
 
     target.use { res ->
@@ -118,8 +118,8 @@ fun mergeFilesInverse(
 
                 file to channel.readLines(
                     direct = false,
-                    startPositionInclusive = 0,
-                    endPositionExclusive = segmentSize.get(),
+                    startAreaPositionInclusive = 0,
+                    endAreaPositionExclusive = segmentSize.get(),
                     listener = { size -> segmentSize.set(size) },
                     buffer = readBuffer,
                     delimiter = delimiter,

@@ -46,15 +46,19 @@ internal class LineReaderTest {
         val actual1 = file1.use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position1.get(),
-                listener = { position1.set(it) },
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position1.get(),
+                listener = {
+                    position1.set(it)
+                    channel.truncate(it)
+                },
                 buffer = ByteBuffer.allocateDirect(7),
                 delimiter = ","
             ).map { it.toDouble() }.toList()
         }
         Assertions.assertEquals(0, position1.get())
         Assertions.assertEquals(given1, actual1.reversed())
+        Assertions.assertEquals(0, file1.fileSize())
 
         val file2 = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
         val given2 = (1..42).map { Random.nextLong() }.sorted().map { it.toString() }
@@ -64,10 +68,10 @@ internal class LineReaderTest {
         val actual2 = file2.use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position2.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position2.get(),
                 listener = { position2.set(it) },
-                buffer = ByteBuffer.allocateDirect(7)
+                buffer = ByteBuffer.allocateDirect(7),
             ).toList()
         }
         Assertions.assertEquals(0, position2.get())
@@ -82,8 +86,8 @@ internal class LineReaderTest {
         val res = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position.get(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(42),
                 charset = Charsets.UTF_32LE,
@@ -105,8 +109,8 @@ internal class LineReaderTest {
         val res = Files.newByteChannel(file, StandardOpenOption.READ, StandardOpenOption.WRITE).use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position.get(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(424242),
                 delimiter = "\n",
@@ -128,8 +132,8 @@ internal class LineReaderTest {
         val res = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position.get(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(424242),
                 delimiter = ";",
@@ -149,8 +153,8 @@ internal class LineReaderTest {
             Files.newByteChannel(file, StandardOpenOption.READ).use {
                 it.readLines(
                     direct = false,
-                    startPositionInclusive = 0,
-                    endPositionExclusive = 42,
+                    startAreaPositionInclusive = 0,
+                    endAreaPositionExclusive = 42,
                     buffer = ByteBuffer.allocateDirect(4)
                 )
             }.toList()
@@ -166,8 +170,8 @@ internal class LineReaderTest {
         val res = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position.get(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(4),
                 delimiter = ";",
@@ -218,8 +222,8 @@ internal class LineReaderTest {
             Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
                 channel.readLines(
                     direct = false,
-                    startPositionInclusive = 0,
-                    endPositionExclusive = file.fileSize(),
+                    startAreaPositionInclusive = 0,
+                    endAreaPositionExclusive = file.fileSize(),
                     delimiter = "||",
                     maxLineLengthInBytes = 2,
                 ).toList()
@@ -230,8 +234,8 @@ internal class LineReaderTest {
             Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
                 channel.readLines(
                     direct = false,
-                    startPositionInclusive = 0,
-                    endPositionExclusive = file.fileSize(),
+                    startAreaPositionInclusive = 0,
+                    endAreaPositionExclusive = file.fileSize(),
                     delimiter = "++",
                     maxLineLengthInBytes = 2,
                     buffer = ByteBuffer.allocateDirect(3),
@@ -250,8 +254,8 @@ internal class LineReaderTest {
         val actual = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
                 direct = false,
-                startPositionInclusive = 0,
-                endPositionExclusive = position.get(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = position.get(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(bufferSize),
                 delimiter = delimiter,
@@ -272,8 +276,8 @@ internal class LineReaderTest {
         val actual = file.use { channel ->
             channel.readLines(
                 direct = direct,
-                startPositionInclusive = 31,
-                endPositionExclusive = 94,
+                startAreaPositionInclusive = 31,
+                endAreaPositionExclusive = 94,
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(bufferSize),
                 delimiter = ";",
@@ -281,7 +285,7 @@ internal class LineReaderTest {
             ).toList()
         }
         Assertions.assertEquals(7, actual.size)
-        Assertions.assertEquals(if (direct) 94 else 31, position.get())
+        Assertions.assertEquals(if (direct) 93 else 31, position.get())
         Assertions.assertEquals(
             "tîhan;tɛst;시험;tès;ፈተና;provë;පරීක්ෂණ",
             (if (direct) actual else actual.reversed()).joinToString(";")
@@ -295,15 +299,15 @@ internal class LineReaderTest {
         val actual = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
                 direct = true,
-                startPositionInclusive = 0,
-                endPositionExclusive = file.fileSize(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = file.fileSize(),
                 listener = { position.set(it) },
                 buffer = ByteBuffer.allocateDirect(bufferSize),
                 charset = charset,
                 delimiter = ";",
             ).toList()
         }
-        Assertions.assertEquals(file.fileSize(), position.get())
+        Assertions.assertEquals(file.fileSize() - 1, position.get())
         Assertions.assertEquals(testData.split(";"), actual)
     }
 }

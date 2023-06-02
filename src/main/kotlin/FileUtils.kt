@@ -8,6 +8,7 @@ import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.deleteExisting
+import kotlin.io.path.readText
 
 /**
  * Inserts the given [data] at the [specified position][beforePosition] of channel.
@@ -96,10 +97,10 @@ fun invert(
     Files.newByteChannel(target, StandardOpenOption.WRITE).use { dst ->
         Files.newByteChannel(source, StandardOpenOption.READ, StandardOpenOption.WRITE).use { src ->
             var position = src.size()
-            val delimiterBytes = delimiter.toByteArray(charset)
+            val delimiterBytes = delimiter.toSymbolBytes(charset)
             src.readLinesAsByteArrays(
-                startPositionInclusive = 0,
-                endPositionExclusive = src.size(),
+                startAreaPositionInclusive = 0,
+                endAreaPositionExclusive = src.size(),
                 delimiter = delimiterBytes,
                 direct = false,
             ).forEach { b ->
@@ -132,8 +133,8 @@ fun isSorted(
 ): Boolean = file.use(StandardOpenOption.READ) {
     var prev: String? = null
     it.readLines(
-        startPositionInclusive = 0,
-        endPositionExclusive = it.size(),
+        startAreaPositionInclusive = 0,
+        endAreaPositionExclusive = it.size(),
         delimiter = delimiter,
         charset = charset,
         buffer = buffer,
@@ -206,4 +207,22 @@ fun <X : AutoCloseable> Iterable<X>.closeAll(exception: (String) -> Throwable = 
     if (ex.suppressed.isNotEmpty()) {
         throw ex
     }
+}
+
+internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
+
+internal fun String.toSymbolBytes(charset: Charset): ByteArray {
+    val res = toByteArray(charset)
+    if (charset == Charsets.UTF_16) {
+        return res.drop(2).toByteArray()
+    }
+    return res
+}
+
+internal fun Path.readTextNoBOM(charset: Charset): String {
+    val res = readText(charset)
+    if (res.startsWith('\uFEFF')) {
+        return res.substring(1)
+    }
+    return res
 }
