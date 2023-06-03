@@ -90,7 +90,6 @@ inline fun <reified X> mergeIterators(
     }
 }
 
-
 /**
  * @throws ClassCastException
  */

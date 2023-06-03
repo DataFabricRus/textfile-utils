@@ -1,6 +1,7 @@
 package com.gitlab.sszuev.textfiles
 
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -101,6 +102,13 @@ internal class ClassicMergeTest {
     fun `test merge several sources`(given: List<List<Comparable<Any>>>) {
         val expected = given.asSequence().flatMap { it.asSequence() }.sorted().toList()
         val actual = mergeSequences(given.map { it.asSequence() }).toList()
+        Assertions.assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `test merge single source`() {
+        val expected = listOf(4, 2, 42)
+        val actual = mergeSequences(listOf(expected.asSequence())).toList()
         Assertions.assertEquals(expected, actual)
     }
 }

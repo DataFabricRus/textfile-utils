@@ -6,6 +6,7 @@ import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.OpenOption
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.deleteExisting
 
@@ -221,4 +222,12 @@ fun String.bytes(charset: Charset): ByteArray {
 
 fun Charset.bomSymbols(): ByteArray = if (this == Charsets.UTF_16) byteArrayOf(-2, -1) else byteArrayOf()
 
-internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
+operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
+
+fun sameFilePaths(left: Path, right: Path): Boolean = left.normalizeToString() == right.normalizeToString()
+
+fun Path.normalizeToString(): String = if (System.getProperty("os.name").lowercase().startsWith("win")) {
+    Paths.get(normalize().toString()).toUri().toString().lowercase()
+} else {
+    Paths.get(normalize().toString()).toUri().toString()
+}

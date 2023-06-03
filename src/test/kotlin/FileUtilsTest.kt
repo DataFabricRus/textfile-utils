@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.fileSize
 import kotlin.io.path.readText
@@ -189,6 +190,72 @@ internal class FileUtilsTest {
                 charset = Charsets.ISO_8859_1,
                 comparator = { a, b -> a.toFloat().compareTo(b.toFloat()) }
             )
+        )
+    }
+
+    @Test
+    fun `test sameFilePaths(Path, Path)`() {
+        val root1 = Paths.get(".").toRealPath()
+        val root2 = Paths.get(root1.toString().lowercase())
+        val root3 = Paths.get(root1.toString().replaceFirst("\\", "\\.\\"))
+        val root4 = Paths.get(root1.toString().replace("\\", "\\.\\"))
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("/tmp/.gitignore"), Paths.get("/tmp/.gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get(".gitignore"), Paths.get(".gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root1\\.gitignore"), Paths.get("$root1\\.gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root1\\.gitignore"), Paths.get(".gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root2\\.gitignore"), Paths.get("$root1\\.gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root2\\.gitignore"), Paths.get("$root3\\.gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root4\\.gitignore"), Paths.get(".gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(Paths.get("$root1\\..\\${root1.fileName}\\.gitignore"), Paths.get(".gitignore"))
+        )
+        Assertions.assertTrue(
+            sameFilePaths(
+                Paths.get("W:\\tmp\\.\\text-file-sorting\\.\\.gitignore"),
+                Paths.get("W:\\tmp\\..\\tmp\\.\\text-file-sorting\\.gitignore")
+            )
+        )
+
+        Assertions.assertFalse(
+            sameFilePaths(
+                Paths.get("W:\\xxx${Random.Default.nextInt()}\\text-file-sorting\\.\\.gitignore"),
+                Paths.get(".gitignore")
+            )
+        )
+        Assertions.assertFalse(
+            sameFilePaths(
+                Paths.get("W:\\tmp\\text-file-sorting\\.\\.gitignore"),
+                Paths.get("Q:\\tmp\\text-file-sorting\\.gitignore")
+            )
+        )
+        Assertions.assertFalse(
+            sameFilePaths(
+                Paths.get("W:\\tmp\\uuu\\text-file-sorting\\.\\.gitignore"),
+                Paths.get("W:\\tmp\\text-file-sorting\\.gitignore")
+            )
+        )
+        Assertions.assertFalse(
+            sameFilePaths(
+                Paths.get("W:\\tmp\\text-file-sorting\\.\\.gitignore-1"),
+                Paths.get("W:\\tmp\\text-file-sorting\\.gitignore-2")
+            )
+        )
+        Assertions.assertFalse(
+            sameFilePaths(Paths.get("/xxx/.gitignore"), Paths.get("/qqq/.gitignore"))
         )
     }
 
