@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
@@ -18,11 +19,11 @@ import kotlin.io.path.writeText
 import kotlin.random.Random
 import kotlin.streams.toList
 
-internal class MergeSortTests {
+internal class MergeSortTest {
 
     companion object {
 
-        private fun assertPartsSize(
+        internal fun assertPartsSize(
             expectedSize: Long,
             parts: List<Path>,
             delimiterLength: Int,
@@ -38,7 +39,7 @@ internal class MergeSortTests {
             Assertions.assertEquals(expectedSize - bomSymbolsLength, actualSize)
         }
 
-        private fun assertPartsContent(
+        internal fun assertPartsContent(
             expected: Map<String, Int>,
             parts: List<Path>,
             comparator: Comparator<String>,
@@ -79,6 +80,40 @@ internal class MergeSortTests {
             Assertions.assertEquals(expected.size, actual.size)
             Assertions.assertTrue(res)
         }
+
+        internal fun generateLargeFile(lines: Int, target: () -> Path): Path {
+            val res = target()
+            Files.newBufferedWriter(res, Charsets.UTF_8).use {
+                (1..lines).forEach { index ->
+                    val line = "${UUID.randomUUID()}::$index"
+                    it.write(line)
+                    if (index != lines) {
+                        it.write("\n")
+                    }
+                }
+            }
+            return res
+        }
+
+        internal fun checkIsSorted(
+            file: Path,
+            comparator: Comparator<String>,
+            lines: Int,
+        ) {
+            var num: Long = (lines + 1L) * lines / 2
+            Files.newBufferedReader(file, Charsets.UTF_8).useLines {
+                var prev: String? = null
+                it.forEach { line ->
+                    if (prev == null) {
+                        prev = line
+                    }
+                    Assertions.assertTrue(comparator.compare(prev, line) <= 0) { "'$prev' > '$line'" }
+                    val index = line.split("::")[1].toInt()
+                    num -= index
+                }
+            }
+            Assertions.assertEquals(0, num)
+        }
     }
 
     @Test
@@ -116,7 +151,7 @@ internal class MergeSortTests {
             dir = dir,
             charset = Charsets.UTF_32LE,
             delimiter = ":::",
-            deleteSourceFile = false,
+            deleteSourceFile = true,
             comparator = defaultComparator(),
             context = Dispatchers.Default,
             lines = 420,
@@ -130,12 +165,43 @@ internal class MergeSortTests {
             dir = dir,
             charset = Charsets.UTF_32,
             delimiter = "\n",
-            deleteSourceFile = true,
+            deleteSourceFile = false,
             comparator = defaultComparator<String>().reversed(),
             context = Dispatchers.IO,
             lines = 42424, // ~6MB
             inMemory = false,
         )
+    }
+
+    @Test
+    fun `test sort large file`(@TempDir dir: Path): Unit = runBlocking {
+        val numLines = 200_000
+        val source = generateLargeFile(numLines) {
+            Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        }
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+
+        val fileSize = source.fileSize()
+        val allocatedMemory = fileSize.toInt() / 3
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore("::")
+            val b = right.substringBefore("::")
+            a.compareTo(b)
+        }
+
+        suspendSort(
+            source = source,
+            target = target,
+            delimiter = "\n",
+            controlDiskspace = true,
+            charset = Charsets.UTF_8,
+            allocatedMemorySizeInBytes = allocatedMemory,
+            coroutineContext = Dispatchers.IO,
+            comparator = comparator,
+        )
+
+        checkIsSorted(target, comparator, numLines)
+        Assertions.assertEquals(fileSize, target.fileSize())
     }
 
     private suspend fun testSortRelativelySmallFile(
@@ -149,7 +215,7 @@ internal class MergeSortTests {
         lines: Int,
     ) {
         val source = Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
-        val target = Files.createTempFile(dir, "xxx-merge-sort-target-", ".xxx")
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
 
         val content = (1..lines).map { UUID.randomUUID().toString() }.toList()
         source.writeText(content.joinToString(delimiter), charset)
@@ -163,7 +229,7 @@ internal class MergeSortTests {
             source = source,
             target = target,
             delimiter = delimiter,
-            deleteSourceFile = deleteSourceFile,
+            controlDiskspace = deleteSourceFile,
             charset = charset,
             allocatedMemorySizeInBytes = allocatedMemory,
             coroutineContext = context,
@@ -210,7 +276,7 @@ internal class MergeSortTests {
             comparator = comparator,
             delimiter = delimiter,
             allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
-            deleteSourceFile = true,
+            controlDiskspace = true,
             charset = charset,
             coroutineContext = coroutineContext,
         )
@@ -226,4 +292,5 @@ internal class MergeSortTests {
 
         Assertions.assertFalse(source.exists())
     }
+
 }

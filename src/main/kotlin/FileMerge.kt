@@ -17,36 +17,45 @@ import kotlin.math.min
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
  * The target file will be inverse: e.g. if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
  * The [invert] method can be used to rewrite content in direct order.
- * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
- * The chosen ratio is [allocatedMemorySizeInBytes] = `2 * x * (sourceFileSize{1} + ... sourceFileSize{N}) = 2 * x * targetFileSize`
- * and has no any mathematical or experimental basis and is most likely not optimal, but seems to be reasonable.
- * Note that total memory consumption is greater than [allocatedMemorySizeInBytes]
- * sine both reader and writer use additional arrays to store results.
- * Source files will be deleted if [deleteSourceFiles] = `true`.
+ * The method allocates `[allocatedMemorySizeInBytes] * [writeToTotalMemRatio]` bytes for write operation,
+ * and `sourceFileSize{i} * [allocatedMemorySizeInBytes] * (1 - [writeToTotalMemRatio]) / sum (sourceFileSize{1} + ... sourceFileSize{N})` bytes for each read operation.
+ *
+ * Note that total memory consumption is greater than [allocatedMemorySizeInBytes], since each operation requires some temporal data.
+ *
+ * If [controlDiskspace] = `true` then source files will be truncated while process and completely deleted at the end of process.
+ * When control diskspace is enabled the method execution can take a long time.
  *
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
  * @param [comparator][Comparator]<[String]>
  * @param [delimiter]
  * @param [allocatedMemorySizeInBytes] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize`, approximate memory consumption; number of bytes
- * @param [deleteSourceFiles] if `true` source files will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace
+ * @param [controlDiskspace] if `true` source files will be truncated while process and completely deleted at the end of it;
+ * this allows to save diskspace, but it takes more time
  * @param [charset][Charset]
+ * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
  */
 fun mergeFilesInverse(
     sources: Set<Path>,
     target: Path,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
-    allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
-    deleteSourceFiles: Boolean = false,
     charset: Charset = Charsets.UTF_8,
+    allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
+    writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
+    controlDiskspace: Boolean = false,
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
-    val writeBufferSize = max((allocatedMemorySizeInBytes / 2.0).toInt(), MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES)
+    require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0)
+
+    val writeBufferSize =
+        max((allocatedMemorySizeInBytes * writeToTotalMemRatio).toInt(), MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES)
+    val readBuffersSize = max(allocatedMemorySizeInBytes - writeBufferSize, MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES)
+    val filesSize = sources.sumOf { it.fileSize() }
+    val readFilesSizeRatio = readBuffersSize.toDouble() / filesSize
+
     val writeBuffer = ByteBuffer.allocateDirect(writeBufferSize)
-    val readFilesSizeRatio = allocatedMemorySizeInBytes / (sources.sumOf { it.fileSize() } * 2.0)
     val sourceBuffers = sources.associateWith { file ->
         val size = max((readFilesSizeRatio * file.fileSize()).toInt(), MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES)
         ByteBuffer.allocateDirect(size)
@@ -57,10 +66,10 @@ fun mergeFilesInverse(
         target = target,
         comparator = comparator,
         delimiter = delimiter,
+        charset = charset,
         sourceBuffer = { checkNotNull(sourceBuffers[it]) },
         targetBuffer = { writeBuffer },
-        deleteSourceFiles = deleteSourceFiles,
-        charset = charset,
+        controlDiskspace = controlDiskspace,
     )
 }
 
@@ -79,7 +88,7 @@ fun mergeFilesInverse(
  * @param [delimiter]
  * @param [sourceBuffer] get [ByteBuffer] for read operations, the number of bytes must be greater than 2
  * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
- * @param [deleteSourceFiles] if `true` source files will be truncated while process and completely deleted at the end of it;
+ * @param [controlDiskspace] if `true` source files will be truncated while process and completely deleted at the end of it;
  * this allows to save diskspace
  * @param [charset][Charset]
  */
@@ -88,10 +97,10 @@ fun mergeFilesInverse(
     target: Path,
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
+    charset: Charset = Charsets.UTF_8,
     sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
-    deleteSourceFiles: Boolean = false,
-    charset: Charset = Charsets.UTF_8,
+    controlDiskspace: Boolean = false,
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must be greater than 1" }
     val readBuffers = sources.associateWith { file ->
@@ -125,7 +134,8 @@ fun mergeFilesInverse(
                     buffer = readBuffer,
                     delimiter = delimiter,
                     charset = charset,
-                    coroutineName = "LeftLinesReader[$file]"
+                    coroutineName = "LeftLinesReader[$file]",
+                    internalQueueSize = LINE_READER_INTERNAL_QUEUE_SIZE,
                 )
             }
             if (bomSymbols.isNotEmpty()) {
@@ -137,7 +147,7 @@ fun mergeFilesInverse(
                 }
                 firstLine = false
                 res.writeData(line.bytes(charset), writeBuffer)
-                if (deleteSourceFiles) {
+                if (controlDiskspace) {
                     source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
                 }
             }
@@ -145,13 +155,13 @@ fun mergeFilesInverse(
                 writeBuffer.limit(writeBuffer.position())
                 writeBuffer.position(0)
                 res.write(writeBuffer)
-                if (deleteSourceFiles) {
+                if (controlDiskspace) {
                     source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
                 }
             }
         }
     }
-    if (deleteSourceFiles) {
+    if (controlDiskspace) {
         segmentSizes.forEach { (file, segment) ->
             check(file.fileSize() == bomSymbols.size.toLong()) {
                 "Source file <${file.fileName}> must be empty; real-size = ${file.fileSize()}, segment-size = $segment"

@@ -29,11 +29,11 @@ internal class FileMergeTest {
             mergeFilesInverse(
                 sources = setOf(leftSource, rightSource),
                 target = tmp,
-                allocatedMemorySizeInBytes = allocatedMemorySize,
-                deleteSourceFiles = deleteSourceFiles,
                 comparator = comparator,
                 delimiter = delimiter,
                 charset = charset,
+                allocatedMemorySizeInBytes = allocatedMemorySize,
+                controlDiskspace = deleteSourceFiles,
             )
             invert(
                 source = tmp,
@@ -146,9 +146,10 @@ internal class FileMergeTest {
         mergeFilesInverse(
             sources = sources,
             target = target,
-            deleteSourceFiles = true,
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed(),
             charset = Charsets.UTF_16,
+            controlDiskspace = true,
+            allocatedMemorySizeInBytes = 8912,
         )
 
         val expected = (content1 + content2 + content3 + content4 + content5).sorted().reversed().joinToString("\n")
