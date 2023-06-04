@@ -204,6 +204,22 @@ internal class MergeSortTest {
         Assertions.assertEquals(fileSize, target.fileSize())
     }
 
+    @Test
+    fun `test calc chunk size`() {
+        testCalcChunkSize(16349910L, 8912)
+        testCalcChunkSize(4657, 102)
+        testCalcChunkSize(4657, 91)
+        testCalcChunkSize(4657, 4656)
+        testCalcChunkSize(42, 21)
+        testCalcChunkSize(42, 31)
+        testCalcChunkSize(217, 215)
+        testCalcChunkSize(17, 15)
+        testCalcChunkSize(333, 222)
+        testCalcChunkSize(4242424242424242424, 8912)
+        testCalcChunkSize(4242424242424242424, 424242424)
+        testCalcChunkSize(2, 1)
+    }
+
     private suspend fun testSortRelativelySmallFile(
         dir: Path,
         charset: Charset,
@@ -291,6 +307,14 @@ internal class MergeSortTest {
         }
 
         Assertions.assertFalse(source.exists())
+    }
+
+    private fun testCalcChunkSize(totalSize: Long, maxChunkSize: Int) {
+        val chunk = calcChunkSize(totalSize, maxChunkSize)
+        val rest = totalSize - chunk * (totalSize / chunk)
+        Assertions.assertTrue(rest <= chunk) {
+            "total=$totalSize, max=$maxChunkSize, chunk=$chunk, rest=$rest"
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.gitlab.sszuev.textfiles
 
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
@@ -9,6 +10,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.deleteExisting
+import kotlin.io.path.deleteIfExists
 
 /**
  * Inserts the given [data] at the [specified position][beforePosition] of channel.
@@ -230,4 +232,21 @@ fun Path.normalizeToString(): String = if (System.getProperty("os.name").lowerca
     Paths.get(normalize().toString()).toUri().toString().lowercase()
 } else {
     Paths.get(normalize().toString()).toUri().toString()
+}
+
+fun Collection<Path>.deleteAll(): Boolean {
+    val ex = IOException("Exception while deleting all files")
+    var res = false
+    toSet().forEach {
+        res = try {
+            it.deleteIfExists()
+        } catch (e: Exception) {
+            ex.addSuppressed(e)
+            false
+        }
+    }
+    if (ex.suppressed.isNotEmpty()) {
+        throw ex
+    }
+    return res
 }

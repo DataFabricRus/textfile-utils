@@ -24,20 +24,20 @@ import kotlin.io.path.exists
 import kotlin.io.path.fileSize
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.moveTo
-import kotlin.math.ceil
 import kotlin.math.max
 
 /**
  * Sorts the content of the given file and writes result to the specified target file.
- * Performs sorting in memory if [source] file size is less than [allocatedMemorySizeInBytes].
+ *
+ * Performs sorting in memory if [source] file size is small enough (less than [allocatedMemorySizeInBytes]).
  * For large files the method splits the source on pieces,
  * then sort each in memory with reversed [comparator] and writes to part files,
  * after this it merges parts into single one use direct [comparator] and method [mergeFilesInverse].
  * The memory consumption of all operations is controlled by [allocatedMemorySizeInBytes] parameter.
  *
  * If [controlDiskspace] is `true` no additional diskspace is required:
- * source file and parts files will be truncated during the process and [source] file will be deleted,
- * but the whole process can take a long time.
+ * source file and its parts files will be truncated during the process and [source] file will be deleted,
+ * but the whole process in this case can take a long time.
  *
  * @param [source][Path] existing regular file
  * @param [target][Path] result file, must not exist
@@ -95,28 +95,33 @@ suspend fun suspendSort(
     // large file
     val tmpTarget = target + ".sorted"
     tmpTarget.createFile()
-
-    val parts = suspendSplitAndSort(
-        source = source,
-        comparator = comparator.reversed(),
-        delimiter = delimiter,
-        allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
-        controlDiskspace = controlDiskspace,
-        charset = charset,
-        coroutineContext = coroutineContext,
-    )
-
-    mergeFilesInverse(
-        sources = parts.toSet(),
-        target = tmpTarget,
-        comparator = comparator,
-        delimiter = delimiter,
-        charset = charset,
-        allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
-        controlDiskspace = controlDiskspace,
-    )
-
-    parts.forEach { it.deleteIfExists() }
+    val parts = mutableSetOf<Path>()
+    try {
+        parts.addAll(
+            suspendSplitAndSort(
+                source = source,
+                comparator = comparator.reversed(),
+                delimiter = delimiter,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                controlDiskspace = controlDiskspace,
+                charset = charset,
+                coroutineContext = coroutineContext,
+            )
+        )
+        if (parts.isNotEmpty()) {
+            mergeFilesInverse(
+                sources = parts,
+                target = tmpTarget,
+                comparator = comparator,
+                delimiter = delimiter,
+                charset = charset,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                controlDiskspace = controlDiskspace,
+            )
+        }
+    } finally {
+        parts.deleteAll()
+    }
     tmpTarget.moveTo(target = target, overwrite = true)
 }
 
@@ -154,16 +159,16 @@ internal suspend fun suspendSplitAndSort(
     require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0)
 
     val chunkSize = calcChunkSize(
-        source.fileSize(),
-        (allocatedMemorySizeInBytes * writeToTotalMemRatio / numOfWriteWorkers).toInt()
+        totalSize = source.fileSize(),
+        maxChunkSize = (allocatedMemorySizeInBytes * writeToTotalMemRatio / numOfWriteWorkers).toInt()
     )
     val readBufferSize =
-        max(LINE_READER_MAX_LINE_LENGTH_IN_BYTES, allocatedMemorySizeInBytes - chunkSize * numOfWriteWorkers)
+        max(MAX_LINE_LENGTH_IN_BYTES, allocatedMemorySizeInBytes - chunkSize * numOfWriteWorkers)
     val readBuffer = ByteBuffer.allocateDirect(readBufferSize)
     val writeBuffers = ArrayBlockingQueue<ByteBuffer>(numOfWriteWorkers)
     writeBuffers.add(ByteBuffer.allocateDirect(chunkSize))
 
-    val scope = CoroutineScope(coroutineContext) + CoroutineName("Writers[${source.fileName}]")
+    val coroutineScope = CoroutineScope(coroutineContext) + CoroutineName("Writers[${source.fileName}]")
 
     val bytesComparator = comparator.toByteComparator(charset)
 
@@ -178,49 +183,55 @@ internal suspend fun suspendSplitAndSort(
     val bomSymbols = charset.bomSymbols()
     val delimiterBytes = delimiter.bytes(charset)
 
-    source.use { input ->
-        input.readLinesBytes(
-            controlDiskSpace = controlDiskspace,
-            coroutineContext = coroutineContext,
-            delimiterBytes = delimiterBytes,
-            bomSymbols = bomSymbols,
-            buffer = readBuffer,
-        ).forEach { line ->
-            linePosition -= line.size
-            if (linePosition <= chunkPosition) {
-                chunkPosition = prevLinePosition - chunkSize
-                val linesSnapshot = lines.toTypedArray()
-                lines.clear()
-                writers.add(
-                    scope.writeJob(
-                        content = linesSnapshot.sort(bytesComparator),
-                        target = res.put(source + ".${fileCounter++}.part"),
-                        delimiterBytes = delimiterBytes,
-                        bomSymbols = bomSymbols,
-                        buffers = writeBuffers,
-                    )
-                )
-            }
-            lines.add(line)
-            prevLinePosition = linePosition
-            linePosition -= delimiterBytes.size
-        }
-    }
-    if (lines.isNotEmpty()) {
-        val linesSnapshot = lines.toTypedArray()
-        lines.clear()
-        writers.add(
-            scope.writeJob(
-                content = linesSnapshot.sort(bytesComparator),
-                target = res.put(source + ".${fileCounter++}.part"),
+    try {
+        source.use { input ->
+            input.readLinesBytes(
+                controlDiskSpace = controlDiskspace,
+                coroutineContext = coroutineContext,
                 delimiterBytes = delimiterBytes,
                 bomSymbols = bomSymbols,
-                buffers = writeBuffers,
+                buffer = readBuffer,
+            ).forEach { line ->
+                linePosition -= line.size
+                if (linePosition <= chunkPosition) {
+                    chunkPosition = prevLinePosition - chunkSize
+                    val linesSnapshot = lines.toTypedArray()
+                    lines.clear()
+                    writers.add(
+                        coroutineScope.writeJob(
+                            content = linesSnapshot.sort(bytesComparator),
+                            target = res.put(source + ".${fileCounter++}.part"),
+                            delimiterBytes = delimiterBytes,
+                            bomSymbols = bomSymbols,
+                            buffers = writeBuffers,
+                        )
+                    )
+                }
+                lines.add(line)
+                prevLinePosition = linePosition
+                linePosition -= delimiterBytes.size
+            }
+        }
+        if (lines.isNotEmpty()) {
+            val linesSnapshot = lines.toTypedArray()
+            lines.clear()
+            writers.add(
+                coroutineScope.writeJob(
+                    content = linesSnapshot.sort(bytesComparator),
+                    target = res.put(source + ".${fileCounter++}.part"),
+                    delimiterBytes = delimiterBytes,
+                    bomSymbols = bomSymbols,
+                    buffers = writeBuffers,
+                )
             )
-        )
+        }
+        writers.joinAll()
+    } catch (ex: Exception) {
+        res.deleteAll()
+        res.clear()
+        throw ex
     }
-    writers.joinAll()
-    scope.ensureActive()
+    coroutineScope.ensureActive()
     if (controlDiskspace) {
         check(source.fileSize() == bomSymbols.size.toLong())
         source.deleteExisting()
@@ -282,6 +293,7 @@ private fun writeLines(
     bomSymbols: ByteArray,
     buffers: BlockingQueue<ByteBuffer>,
 ) {
+    target.deleteIfExists()
     val buffer = checkNotNull(buffers.poll(SORT_FILE_WRITE_OPERATION_TIMEOUT_IN_MS, TimeUnit.MILLISECONDS)) {
         "Unable to obtain write-buffer within $SORT_FILE_WRITE_OPERATION_TIMEOUT_IN_MS ms"
     }
@@ -317,11 +329,15 @@ private fun writeLines(
     }
 }
 
-private fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
+internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
+    require(maxChunkSize in 1..totalSize)
+    if (totalSize == maxChunkSize.toLong() || totalSize % maxChunkSize == 0L) {
+        return maxChunkSize
+    }
     var res = maxChunkSize
-    while (ceil(totalSize.toDouble() / res) * res > totalSize + res * SORT_FILE_CHUNK_GAP) {
+    while (totalSize - (totalSize / res) * res > res || totalSize % res < res * SORT_FILE_CHUNK_GAP) {
         res--
     }
-    check(res > 0)
+    check(res > 0) { "total=$totalSize, max=$maxChunkSize, chunk=$res" }
     return res
 }
