@@ -81,13 +81,31 @@ internal class MergeSortTest {
             Assertions.assertTrue(res)
         }
 
-        internal fun generateLargeFile(lines: Int, target: () -> Path): Path {
+        internal fun generateLargeFile(numUniqueLines: Int, numDuplicateLines: Int, target: () -> Path): Path {
             val res = target()
+            val numLines = numUniqueLines + numDuplicateLines
+            val ratio = numDuplicateLines / numLines.toDouble()
+            Random.Default.nextDouble()
+            val duplicates = mutableListOf<String>()
+            var duplicatesCount = 0
+            while (duplicatesCount < numDuplicateLines) {
+                val v = UUID.randomUUID().toString()
+                val n = Random.Default.nextInt(4) + 1
+                repeat((1..n).count()) {
+                    duplicates.add(v)
+                }
+                duplicatesCount += n
+            }
+            duplicates.shuffle()
             Files.newBufferedWriter(res, Charsets.UTF_8).use {
-                (1..lines).forEach { index ->
-                    val line = "${UUID.randomUUID()}::$index"
-                    it.write(line)
-                    if (index != lines) {
+                (1..numLines).forEach { index ->
+                    val line = if (duplicates.isNotEmpty() && Random.Default.nextDouble() < ratio) {
+                        duplicates.removeLast()
+                    } else {
+                        UUID.randomUUID().toString()
+                    }
+                    it.write("$line::$index")
+                    if (index != numLines) {
                         it.write("\n")
                     }
                 }
@@ -174,9 +192,10 @@ internal class MergeSortTest {
     }
 
     @Test
-    fun `test sort large file`(@TempDir dir: Path): Unit = runBlocking {
+    fun `test suspended sort large file`(@TempDir dir: Path): Unit = runBlocking {
         val numLines = 200_000
-        val source = generateLargeFile(numLines) {
+        val numDuplicates = 10_000
+        val source = generateLargeFile(numLines, numDuplicates) {
             Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
         }
         val target = Paths.get(source.toString().replace("-source-", "-target-"))
@@ -200,7 +219,38 @@ internal class MergeSortTest {
             comparator = comparator,
         )
 
-        checkIsSorted(target, comparator, numLines)
+        checkIsSorted(target, comparator, numLines + numDuplicates)
+        Assertions.assertEquals(fileSize, target.fileSize())
+    }
+
+    @Test
+    fun `test blocking sort large file`(@TempDir dir: Path) {
+        val numLines = 142_000
+        val numDuplicates = 100_000
+        val source = generateLargeFile(numLines, numDuplicates) {
+            Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        }
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+
+        val fileSize = source.fileSize()
+        val allocatedMemory = fileSize.toInt() / 4
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore("::")
+            val b = right.substringBefore("::")
+            a.compareTo(b)
+        }.reversed()
+
+        sort(
+            source = source,
+            target = target,
+            delimiter = "\n",
+            controlDiskspace = false,
+            charset = Charsets.UTF_8,
+            allocatedMemorySizeInBytes = allocatedMemory,
+            comparator = comparator,
+        )
+
+        checkIsSorted(target, comparator, numLines + numDuplicates)
         Assertions.assertEquals(fileSize, target.fileSize())
     }
 

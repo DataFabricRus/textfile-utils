@@ -8,6 +8,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
@@ -28,6 +29,55 @@ import kotlin.math.max
 
 /**
  * Sorts the content of the given file and writes result to the specified target file.
+ * This method **blocks** the current thread _interruptibly_ until its completion.
+ * This function **should not** be used from a coroutine.
+ *
+ * Performs sorting in memory if [source] file size is small enough (less than [allocatedMemorySizeInBytes]).
+ * For large files the method splits the source on pieces,
+ * then sort each in memory with reversed [comparator] and writes to part files,
+ * after this it merges parts into single one use direct [comparator] and method [mergeFilesInverse].
+ * The memory consumption of all operations is controlled by [allocatedMemorySizeInBytes] parameter.
+ *
+ * If [controlDiskspace] is `true` no additional diskspace is required:
+ * source file and its parts files will be truncated during the process and [source] file will be deleted,
+ * but the whole process in this case can take a long time.
+ *
+ * @param [source][Path] existing regular file
+ * @param [target][Path] result file, must not exist
+ * @param [comparator][Comparator]<[String]>
+ * @param [delimiter][String]
+ * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
+ * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
+ * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
+ * this allows to save diskspace, but the whole process will take will require more time
+ * @param [charset][Charset]
+ * @param [coroutineContext][CoroutineContext]
+ */
+fun sort(
+    source: Path,
+    target: Path,
+    comparator: Comparator<String> = defaultComparator<String>(),
+    delimiter: String = "\n",
+    allocatedMemorySizeInBytes: Int = SORT_FILE_DEFAULT_MEMORY_ALLOCATION_IN_BYTES,
+    controlDiskspace: Boolean = false,
+    charset: Charset = Charsets.UTF_8,
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+) = runBlocking(coroutineContext) {
+    suspendSort(
+        source,
+        target,
+        comparator,
+        delimiter,
+        allocatedMemorySizeInBytes,
+        controlDiskspace,
+        charset,
+        coroutineContext
+    )
+}
+
+/**
+ * Sorts the content of the given file and writes result to the specified target file.
+ * This is a suspended method, can be used from a coroutine.
  *
  * Performs sorting in memory if [source] file size is small enough (less than [allocatedMemorySizeInBytes]).
  * For large files the method splits the source on pieces,
