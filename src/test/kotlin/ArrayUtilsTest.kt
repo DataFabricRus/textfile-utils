@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import java.nio.ByteBuffer
 
-internal class MiscUtilsTest {
+internal class ArrayUtilsTest {
 
     @Test
     fun `test find-line-near-position functionality, short string`() {

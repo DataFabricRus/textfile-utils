@@ -249,7 +249,7 @@ internal suspend fun suspendSplitAndSort(
                     lines.clear()
                     writers.add(
                         coroutineScope.writeJob(
-                            content = linesSnapshot.sort(bytesComparator),
+                            content = linesSnapshot.sort(comparator.toByteComparator(charset) { hashMapOf() }),
                             target = res.put(source + ".${fileCounter++}.part"),
                             delimiterBytes = delimiterBytes,
                             bomSymbols = bomSymbols,
@@ -288,19 +288,6 @@ internal suspend fun suspendSplitAndSort(
     }
     return res
 }
-
-internal fun <X> MutableCollection<X>.put(item: X): X {
-    add(item)
-    return item
-}
-
-internal fun Array<ByteArray>.sort(comparator: Comparator<ByteArray>): Array<ByteArray> {
-    sortWith(comparator)
-    return this
-}
-
-internal fun Comparator<String>.toByteComparator(charset: Charset) =
-    Comparator<ByteArray> { a, b -> this.compare(a.toString(charset), b.toString(charset)) }
 
 private fun SeekableByteChannel.readLinesBytes(
     controlDiskSpace: Boolean = false,

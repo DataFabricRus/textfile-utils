@@ -100,18 +100,6 @@ inline fun <reified X> mergeIterators(
     }
 }
 
-/**
- * @throws ClassCastException
- */
-@Throws(ClassCastException::class)
-@Suppress("UNCHECKED_CAST")
-inline fun <reified X> defaultComparator(): Comparator<X> {
-    if (X::class.isInstance(Comparable::class)) {
-        throw ClassCastException("${X::class} is not Comparable")
-    }
-    return Comparator { left, right -> (left as Comparable<X>).compareTo(right) }
-}
-
 fun <X> Iterator<X>.nextOrNull() = if (hasNext()) next() else null
 
 /**
