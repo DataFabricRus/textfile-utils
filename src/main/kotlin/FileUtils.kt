@@ -199,44 +199,35 @@ fun Path.channel(
     )
 ): SeekableByteChannel = Files.newByteChannel(this, *options)
 
-fun <X : AutoCloseable> Iterable<X>.closeAll(exception: (String) -> Throwable = { Exception(it) }) {
-    val ex = exception("Error while closing")
-    forEach {
-        try {
-            it.close()
-        } catch (ex: Exception) {
-            ex.addSuppressed(ex)
-        }
-    }
-    if (ex.suppressed.isNotEmpty()) {
-        throw ex
-    }
-}
+/**
+ * Appends String suffix returning new [Path].
+ */
+internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
 
-fun String.bytes(charset: Charset): ByteArray {
-    val bom = charset.bomSymbols().size
-    return if (bom == 0) {
-        toByteArray(charset)
-    } else {
-        toByteArray(charset).drop(bom).toByteArray()
-    }
-}
-
-fun Charset.bomSymbols(): ByteArray = if (this == Charsets.UTF_16) byteArrayOf(-2, -1) else byteArrayOf()
-
-operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
-
+/**
+ * Determines whether two given paths are equivalent (i.e. specified paths point to a single physical file, possibly non-existent).
+ */
 fun sameFilePaths(left: Path, right: Path): Boolean = left.normalizeToString() == right.normalizeToString()
 
+/**
+ * Transforms this [Path] to the unambiguous form,
+ * such that a different path pointing to the same physical file will result in the same form.
+ */
 fun Path.normalizeToString(): String = if (System.getProperty("os.name").lowercase().startsWith("win")) {
     Paths.get(normalize().toString()).toUri().toString().lowercase()
 } else {
     Paths.get(normalize().toString()).toUri().toString()
 }
 
+/**
+ * Deletes this collection of [paths][Path] returning `true` on success.
+ * If some any file does not exist the method returns `false`.
+ * If the collection is empty the method returns `true`.
+ * @throws IOException
+ */
 fun Collection<Path>.deleteAll(): Boolean {
     val ex = IOException("Exception while deleting all files")
-    var res = false
+    var res = true
     toSet().forEach {
         res = try {
             it.deleteIfExists()

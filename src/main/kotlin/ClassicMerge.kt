@@ -51,6 +51,16 @@ inline fun <reified X> mergeIterators(
     target: (X) -> Unit,
 ) = mergeIterators(listOf(sourceLeft, sourceRight), comparator, target)
 
+/**
+ * Classic merge algorithm for [collection][Collection] of [iterators][Iterator].
+ * The source iterators must produce sorted sequence of items,
+ * i.e. the next element in the iterator must be greater than or equal to the previous element.
+ * @param [sources][Collection]<[Iterator]<[X]>>
+ * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
+ * @param [target] storage to write merged data
+ * @param [X] must be [Comparable] if no [comparator] is provided
+ * @throws ClassCastException if no [comparator] is provided and [X] is not [Comparable]
+ */
 inline fun <reified X> mergeIterators(
     sources: Collection<Iterator<X>>,
     comparator: Comparator<X> = defaultComparator(),

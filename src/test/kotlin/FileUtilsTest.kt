@@ -16,17 +16,6 @@ import kotlin.random.Random
 
 internal class FileUtilsTest {
 
-    companion object {
-        val testTxt = """
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
-            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-            Excepteur sint occaecat cupidatat non proident, 
-            sunt in culpa qui officia deserunt mollit anim id est laborum.
-        """.trimIndent()
-    }
-
     @Test
     fun `test insert at the beginning of file (small buffer)`(@TempDir dir: Path) {
         testInsertAtTheBeginningOfNonEmptyFile(dir, 42)
@@ -266,7 +255,7 @@ internal class FileUtilsTest {
             explicabo.
         """.trimIndent()
         val file = Files.createTempFile(dir, "test-insert-", ".xxx")
-        file.writeText(testTxt)
+        file.writeText(TEST_DATA_2)
         file.use {
             it.insert(
                 data = txtBefore.toByteArray(),
@@ -275,16 +264,20 @@ internal class FileUtilsTest {
             )
         }
         val actualText = file.readText()
-        Assertions.assertEquals(txtBefore + testTxt, actualText)
+        Assertions.assertEquals(txtBefore + TEST_DATA_2, actualText)
     }
 
     private fun testInsertAtTheBeginningOfEmptyFile(dir: Path, bufferSize: Int) {
         val file = Files.createTempFile(dir, "test-insert-", ".xxx")
         file.use {
-            it.insert(data = testTxt.toByteArray(), beforePosition = 0, buffer = ByteBuffer.allocateDirect(bufferSize))
+            it.insert(
+                data = TEST_DATA_2.toByteArray(),
+                beforePosition = 0,
+                buffer = ByteBuffer.allocateDirect(bufferSize)
+            )
         }
         val actualText = file.readText()
-        Assertions.assertEquals(testTxt, actualText)
+        Assertions.assertEquals(TEST_DATA_2, actualText)
     }
 
     private fun <X> testInsertAtRandomPosition(

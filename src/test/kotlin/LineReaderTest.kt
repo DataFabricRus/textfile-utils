@@ -16,17 +16,6 @@ import kotlin.random.Random
 
 internal class LineReaderTest {
 
-    companion object {
-        private const val testData = "ການທົດສອບ;îmtîhan;tɛst;시험;tès;ፈተና;provë;" +
-                "පරීක්ෂණය;prøve;ꯆꯥꯡꯌꯦꯡ;امتحان;փորձարկում;" +
-                "পৰীক্ষা;kɔrɔbɔli;စမ်းသပ်;परीक्षा;Bài kiểm tra;δοκιμή;" +
-                "ტესტი;પરીક્ષણ;परख;מִבְחָן;פּרובירן;scrúdú;ٽيسٽpróf;" +
-                "сынақ;ಪರೀಕ್ಷೆ;測試;测试;चाचणी;تاقیکردنەوە;សាកល្បង;テスト;" +
-                "pārbaude;परीक्षण;പരീക്ഷ;އިމްތިޙާން;;ꯆꯥꯡꯌꯦꯡ;prüfen;ପରୀକ୍ଷା;" +
-                "ਟੈਸਟ;تست;పరీక్ష;ازموینه;ทดสอบ;சோதனை;" +
-                "ፈተና;Ölçek;پرکھ;sɔhwɛ;dodokpɔ;;"
-    }
-
     @Test
     fun `test direct read (small buffer, utf16le, semicolon)`(@TempDir dir: Path) {
         testDirectRead(dir, Charsets.UTF_16LE, 4)
@@ -91,7 +80,7 @@ internal class LineReaderTest {
     @Test
     fun `test reverse read with (small buffer, utf32le, semicolon)`(@TempDir dir: Path) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData, charset = Charsets.UTF_32LE)
+        file.writeText(TEST_DATA_1, charset = Charsets.UTF_32LE)
         val position = AtomicLong(file.fileSize())
         val res = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
@@ -105,7 +94,7 @@ internal class LineReaderTest {
             ).toList()
         }
         Assertions.assertEquals(0, position.get())
-        Assertions.assertEquals(testData.split(";"), res.reversed())
+        Assertions.assertEquals(TEST_DATA_1.split(";"), res.reversed())
     }
 
     @Test
@@ -136,7 +125,7 @@ internal class LineReaderTest {
     @Test
     fun `test reverse read (big buffer, utf16be, semicolon)`(@TempDir dir: Path) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData, charset = Charsets.UTF_16BE)
+        file.writeText(TEST_DATA_1, charset = Charsets.UTF_16BE)
         val position = AtomicLong(file.fileSize())
 
         val res = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
@@ -152,13 +141,13 @@ internal class LineReaderTest {
         }
 
         Assertions.assertEquals(0, position.get())
-        Assertions.assertEquals(testData.split(";"), res.reversed())
+        Assertions.assertEquals(TEST_DATA_1.split(";"), res.reversed())
     }
 
     @Test
     fun `test closed channel exception`(@TempDir dir: Path) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData)
+        file.writeText(TEST_DATA_1)
         Assertions.assertThrows(ClosedChannelException::class.java) {
             Files.newByteChannel(file, StandardOpenOption.READ).use {
                 it.readLines(
@@ -226,7 +215,7 @@ internal class LineReaderTest {
     @Test
     fun `test max line length checking`(@TempDir dir: Path) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData, Charsets.UTF_8)
+        file.writeText(TEST_DATA_1, Charsets.UTF_8)
         // big buffer
         Assertions.assertThrows(IllegalStateException::class.java) {
             Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
@@ -280,7 +269,7 @@ internal class LineReaderTest {
 
     private fun testReadFromRegion(dir: Path, bufferSize: Int, direct: Boolean) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData, Charsets.UTF_8)
+        file.writeText(TEST_DATA_1, Charsets.UTF_8)
 
         val position = AtomicLong(file.fileSize())
         val actual = file.use { channel ->
@@ -304,7 +293,7 @@ internal class LineReaderTest {
 
     private fun testDirectRead(dir: Path, charset: Charset, bufferSize: Int) {
         val file = Files.createTempFile(dir, "inverse-line-reader-test-", ".xxx")
-        file.writeText(testData, charset = charset)
+        file.writeText(TEST_DATA_1, charset = charset)
         val position = AtomicLong(-1)
         val actual = Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
             channel.readLines(
@@ -318,6 +307,6 @@ internal class LineReaderTest {
             ).toList()
         }
         Assertions.assertEquals(file.fileSize() - 1, position.get())
-        Assertions.assertEquals(testData.split(";"), actual)
+        Assertions.assertEquals(TEST_DATA_1.split(";"), actual)
     }
 }
