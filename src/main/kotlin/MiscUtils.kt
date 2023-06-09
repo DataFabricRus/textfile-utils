@@ -2,7 +2,6 @@ package com.gitlab.sszuev.textfiles
 
 import java.nio.charset.Charset
 
-
 /**
  * [Closes][AutoCloseable.close] all resources from this [Collection].
  */
@@ -42,16 +41,49 @@ inline fun <reified X> defaultComparator(): Comparator<X> {
  * Uses cache while comparing to reduce the number of bytes->String transformation.
  */
 internal fun Comparator<String>.toByteComparator(
-    charset: Charset,
-    cache: () -> MutableMap<ByteArray, String> = { hashMapOf() },
+    charset: Charset = Charsets.UTF_8,
+    cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
+) = toByteComparator(charset, cache) { it }
+
+/**
+ * Creates [ByteArray] comparator from this comparator.
+ * Uses cache while comparing to reduce the number of bytes->String transformation.
+ */
+fun <X> Comparator<X>.toByteComparator(
+    charset: Charset = Charsets.UTF_8,
+    cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
+    map: (String) -> X,
 ): Comparator<ByteArray> {
     val theCache = cache()
     return Comparator { a, b ->
-        val left = theCache.getOrPut(a) { a.toString(charset) }
-        val right = theCache.getOrPut(b) { b.toString(charset) }
-        this.compare(left, right)
+        if (a.size == b.size && a.contentEquals(b)) {
+            0
+        } else {
+            // get String by ByteArray.identityHashCode
+            val leftString: String
+            val rightString: String
+            if (theCache == null) {
+                leftString = a.toString(charset)
+                rightString = b.toString(charset)
+            } else {
+                leftString = theCache.getOrPut(a) { a.toString(charset) }
+                rightString = theCache.getOrPut(b) { b.toString(charset) }
+            }
+            val leftX = map(leftString)
+            val rightX = map(rightString)
+            this.compare(leftX, rightX)
+        }
     }
 }
+
+/**
+ * Creates [Comparator]<[ByteArray]>
+ */
+inline fun <reified X : Comparable<X>> byteArrayComparator(
+    charset: Charset = Charsets.UTF_8,
+    noinline cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
+    noinline map: (String) -> X,
+): Comparator<ByteArray> = defaultComparator<X>().toByteComparator(charset, cache, map)
 
 internal fun <X> MutableCollection<X>.put(item: X): X {
     add(item)
