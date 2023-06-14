@@ -3,6 +3,10 @@ package com.gitlab.sszuev.textfiles
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
+/**
+ * Returns a BOM symbols as a byte array.
+ */
+fun Charset.bomSymbols(): ByteArray = if (this == Charsets.UTF_16) byteArrayOf(-2, -1) else byteArrayOf()
 
 /**
  * Returns the index of the first occurrence of the specified the [array][other]

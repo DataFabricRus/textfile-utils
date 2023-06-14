@@ -378,3 +378,13 @@ internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
     check(res > 0) { "total=$totalSize, max=$maxChunkSize, chunk=$res" }
     return res
 }
+
+private fun <X> MutableCollection<X>.put(item: X): X {
+    add(item)
+    return item
+}
+
+private fun Array<ByteArray>.sort(comparator: Comparator<ByteArray>): Array<ByteArray> {
+    sortWith(comparator)
+    return this
+}

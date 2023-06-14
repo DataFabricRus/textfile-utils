@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import java.nio.ByteBuffer
 
-internal class ArrayUtilsTest {
+internal class ByteArrayUtilsTest {
 
     @Test
     fun `test left-index-of`() {
@@ -794,7 +794,7 @@ internal class ArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
                 delimiter = delimiter,
-                comparator = defaultComparator<String>().toByteComparator(),
+                comparator = defaultByteArrayComparator(),
             )
             val actualLines = res.lines(charset)
             val actualStartPosition = res.startInclusive
@@ -825,7 +825,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(charset)
         val actualStartPosition = res.startInclusive
@@ -853,7 +853,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -878,7 +878,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -902,7 +902,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -931,7 +931,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -956,7 +956,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -986,7 +986,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1014,7 +1014,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1044,7 +1044,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(charset)
         val actualStartPosition = res.startInclusive
@@ -1074,7 +1074,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -1099,7 +1099,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1129,7 +1129,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1153,7 +1153,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1178,7 +1178,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1204,7 +1204,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1234,7 +1234,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1261,7 +1261,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1288,7 +1288,7 @@ internal class ArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultComparator<String>().toByteComparator(),
+            comparator = defaultByteArrayComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1315,7 +1315,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(11, res.startInclusive)
         Assertions.assertEquals(27, res.endExclusive)
@@ -1340,7 +1340,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(101, res.startInclusive)
         Assertions.assertEquals(102, res.endExclusive)
@@ -1365,7 +1365,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(101, res.startInclusive)
         Assertions.assertEquals(102, res.endExclusive)
@@ -1390,7 +1390,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(140, res.startInclusive)
         Assertions.assertEquals(148, res.endExclusive)
@@ -1415,7 +1415,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1442,7 +1442,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1797,7 +1797,7 @@ internal class ArrayUtilsTest {
                 sourceStartInclusive = it,
                 sourceEndExclusive = 42,
                 delimiter = delimiter,
-                comparator = defaultComparator<String>().toByteComparator(charset),
+                comparator = defaultByteArrayComparator(charset),
                 includeLeftBound = false,
                 includeRightBound = false,
             )
@@ -1833,7 +1833,7 @@ internal class ArrayUtilsTest {
                 sourceStartInclusive = 221,
                 sourceEndExclusive = it,
                 delimiter = delimiter,
-                comparator = defaultComparator<String>().toByteComparator(charset),
+                comparator = defaultByteArrayComparator(charset),
                 includeLeftBound = false,
                 includeRightBound = false,
             )
@@ -1860,7 +1860,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
             includeLeftBound = true,
             includeRightBound = false,
         )
@@ -1882,7 +1882,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1902,7 +1902,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(listOf("ການທົດສອບ"), res.lines(charset))
     }
@@ -1920,7 +1920,7 @@ internal class ArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultComparator<String>().toByteComparator(charset),
+            comparator = defaultByteArrayComparator(charset),
         )
         Assertions.assertEquals(listOf("ፈተና", "ፈተና"), res.lines(charset))
     }
@@ -1941,7 +1941,7 @@ internal class ArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
                 delimiter = delimiter,
-                comparator = defaultComparator<String>().toByteComparator(charset),
+                comparator = defaultByteArrayComparator(charset),
             )
             Assertions.assertEquals(listOf(word), res.lines(charset)) { "Can't find word `$word`" }
         }

@@ -200,10 +200,21 @@ fun Path.channel(
 ): SeekableByteChannel = Files.newByteChannel(this, *options)
 
 /**
- * Appends String suffix returning new [Path].
+ * [Closes][AutoCloseable.close] all resources from this [Collection].
  */
-internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
-
+fun <X : AutoCloseable> Iterable<X>.closeAll(exception: (String) -> Throwable = { Exception(it) }) {
+    val ex = exception("Error while closing")
+    forEach {
+        try {
+            it.close()
+        } catch (ex: Exception) {
+            ex.addSuppressed(ex)
+        }
+    }
+    if (ex.suppressed.isNotEmpty()) {
+        throw ex
+    }
+}
 /**
  * Determines whether two given paths are equivalent (i.e. specified paths point to a single physical file, possibly non-existent).
  */
@@ -241,3 +252,8 @@ fun Collection<Path>.deleteAll(): Boolean {
     }
     return res
 }
+
+/**
+ * Appends String suffix returning new [Path].
+ */
+internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
