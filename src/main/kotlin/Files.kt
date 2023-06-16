@@ -257,3 +257,16 @@ fun Collection<Path>.deleteAll(): Boolean {
  * Appends String suffix returning new [Path].
  */
 internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
+
+internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
+    require(maxChunkSize in 1..totalSize)
+    if (totalSize == maxChunkSize.toLong() || totalSize % maxChunkSize == 0L) {
+        return maxChunkSize
+    }
+    var res = maxChunkSize
+    while (totalSize - (totalSize / res) * res > res || totalSize % res < res * SORT_FILE_CHUNK_GAP) {
+        res--
+    }
+    check(res > 0) { "total=$totalSize, max=$maxChunkSize, chunk=$res" }
+    return res
+}

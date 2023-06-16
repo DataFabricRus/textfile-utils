@@ -11,59 +11,59 @@ internal class ByteArrayUtilsTest {
         val source = ByteBuffer.wrap(byteArrayOf(42, 2, 4, 24, 2, 4, 42))
         Assertions.assertEquals(
             4,
-            source.leftIndexOf(1, 6, byteArrayOf(2, 4)),
+            source.lastIndexOf(1, 6, byteArrayOf(2, 4)),
         )
         Assertions.assertEquals(
             4,
-            source.leftIndexOf(3, 7, byteArrayOf(2, 4)),
+            source.lastIndexOf(3, 7, byteArrayOf(2, 4)),
         )
         Assertions.assertEquals(
             1,
-            source.leftIndexOf(1, 4, byteArrayOf(2, 4)),
+            source.lastIndexOf(1, 4, byteArrayOf(2, 4)),
         )
         Assertions.assertEquals(
             5,
-            source.leftIndexOf(1, 7, byteArrayOf(4, 42)),
+            source.lastIndexOf(1, 7, byteArrayOf(4, 42)),
         )
         Assertions.assertEquals(
             0,
-            source.leftIndexOf(0, 7, byteArrayOf(42, 2)),
+            source.lastIndexOf(0, 7, byteArrayOf(42, 2)),
         )
         Assertions.assertEquals(
             -1,
-            source.leftIndexOf(2, 7, byteArrayOf(42, 2)),
+            source.lastIndexOf(2, 7, byteArrayOf(42, 2)),
         )
         Assertions.assertEquals(
             4,
-            source.leftIndexOf(1, 7, byteArrayOf(2, 4, 42)),
+            source.lastIndexOf(1, 7, byteArrayOf(2, 4, 42)),
         )
         Assertions.assertEquals(
             -1,
-            source.leftIndexOf(0, 6, byteArrayOf(2, 4, 42)),
+            source.lastIndexOf(0, 6, byteArrayOf(2, 4, 42)),
         )
         Assertions.assertEquals(
             -1,
-            source.leftIndexOf(1, 5, byteArrayOf(2, 4, 42)),
+            source.lastIndexOf(1, 5, byteArrayOf(2, 4, 42)),
         )
         Assertions.assertEquals(
             1,
-            source.leftIndexOf(1, 5, byteArrayOf(2, 4, 24)),
+            source.lastIndexOf(1, 5, byteArrayOf(2, 4, 24)),
         )
         Assertions.assertEquals(
             5,
-            source.leftIndexOf(0, 6, byteArrayOf(4)),
+            source.lastIndexOf(0, 6, byteArrayOf(4)),
         )
         Assertions.assertEquals(
             2,
-            source.leftIndexOf(0, 4, byteArrayOf(4)),
+            source.lastIndexOf(0, 4, byteArrayOf(4)),
         )
         Assertions.assertEquals(
             -1,
-            source.leftIndexOf(0, 4, byteArrayOf(22)),
+            source.lastIndexOf(0, 4, byteArrayOf(22)),
         )
         Assertions.assertEquals(
             -1,
-            source.leftIndexOf(1, 7, byteArrayOf(2, 4, 42, 42)),
+            source.lastIndexOf(1, 7, byteArrayOf(2, 4, 42, 42)),
         )
     }
 
@@ -72,39 +72,39 @@ internal class ByteArrayUtilsTest {
         val source = ByteBuffer.wrap(byteArrayOf(4, 42, 2, 4, 42, 4))
         Assertions.assertEquals(
             0,
-            source.rightIndexOf(0, 5, byteArrayOf(4)),
+            source.firstIndexOf(0, 5, byteArrayOf(4)),
         )
         Assertions.assertEquals(
             3,
-            source.rightIndexOf(2, 4, byteArrayOf(4)),
+            source.firstIndexOf(2, 4, byteArrayOf(4)),
         )
         Assertions.assertEquals(
             -1,
-            source.rightIndexOf(1, 5, byteArrayOf(4, 43, 4)),
+            source.firstIndexOf(1, 5, byteArrayOf(4, 43, 4)),
         )
         Assertions.assertEquals(
             -1,
-            source.rightIndexOf(1, 6, byteArrayOf(4, 43, 4)),
+            source.firstIndexOf(1, 6, byteArrayOf(4, 43, 4)),
         )
         Assertions.assertEquals(
             -1,
-            source.rightIndexOf(1, 5, byteArrayOf(4, 42, 4)),
+            source.firstIndexOf(1, 5, byteArrayOf(4, 42, 4)),
         )
         Assertions.assertEquals(
             3,
-            source.rightIndexOf(3, 6, byteArrayOf(4, 42, 4)),
+            source.firstIndexOf(3, 6, byteArrayOf(4, 42, 4)),
         )
         Assertions.assertEquals(
             3,
-            source.rightIndexOf(0, 6, byteArrayOf(4, 42, 4)),
+            source.firstIndexOf(0, 6, byteArrayOf(4, 42, 4)),
         )
         Assertions.assertEquals(
             4,
-            source.rightIndexOf(3, 6, byteArrayOf(42)),
+            source.firstIndexOf(3, 6, byteArrayOf(42)),
         )
         Assertions.assertEquals(
             1,
-            source.rightIndexOf(0, 3, byteArrayOf(42)),
+            source.firstIndexOf(0, 3, byteArrayOf(42)),
         )
     }
 
@@ -1949,6 +1949,40 @@ internal class ByteArrayUtilsTest {
 
     @Test
     fun `test binary search #7-a`() {
+        val txt = "42,42"
+        val charset = Charsets.UTF_8
+        val source = txt.toByteArray(charset)
+        val delimiter = ",".toByteArray(charset)
+        val res1 = binarySearch(
+            line = "42".toByteArray(charset),
+            source = ByteBuffer.wrap(source),
+            sourceStartInclusive = 0,
+            sourceEndExclusive = 1,
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(charset),
+            includeLeftBound = true,
+            includeRightBound = true,
+        )
+        Assertions.assertEquals(1, res1.startInclusive)
+        Assertions.assertEquals(-1, res1.endExclusive)
+        Assertions.assertTrue(res1.lines.isEmpty())
+        val res2 = binarySearch(
+            line = "".toByteArray(charset),
+            source = ByteBuffer.wrap(source),
+            sourceStartInclusive = 0,
+            sourceEndExclusive = 1,
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(charset),
+            includeLeftBound = true,
+            includeRightBound = true,
+        )
+        Assertions.assertEquals(-1, res2.startInclusive)
+        Assertions.assertEquals(0, res2.endExclusive)
+        Assertions.assertTrue(res2.lines.isEmpty())
+    }
+
+    @Test
+    fun `test binary search #8-a`() {
         // 42 bytes per line, 515 bytes per text
         val txt = """
             433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A
