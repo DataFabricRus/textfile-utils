@@ -19,19 +19,18 @@ inline fun <reified X> defaultComparator(): Comparator<X> {
  * @param charset [Charset]
  * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
- * therefore use identity-has-code that would be different for two arrays with the same content
+ * therefore use identity-hash-code that would be different for two arrays with the same content
  */
 fun defaultByteArrayComparator(
     charset: Charset = Charsets.UTF_8,
-    cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
+    cache: MutableMap<ByteArray, String>? = null,
 ): Comparator<ByteArray> {
-    val theCache = cache()
     return Comparator { a, b ->
         if (a.size == b.size && a.contentEquals(b)) {
             0
         } else {
-            val leftString = a.toString(charset, theCache)
-            val rightString = b.toString(charset, theCache)
+            val leftString = a.toString(charset, cache)
+            val rightString = b.toString(charset, cache)
             leftString.compareTo(rightString)
         }
     }
@@ -43,12 +42,12 @@ fun defaultByteArrayComparator(
  * @param charset [Charset]
  * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
- * therefore use identity-has-code that would be different for two arrays with the same content
+ * therefore use identity-hash-code that would be different for two arrays with the same content
  */
-internal fun Comparator<String>.toByteComparator(
+internal fun Comparator<String>.toByteArrayComparator(
     charset: Charset = Charsets.UTF_8,
-    cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
-) = toByteComparator(charset, cache) { it }
+    cache: MutableMap<ByteArray, String>? =  null,
+) = toByteArrayComparator(charset, cache) { it }
 
 /**
  * Creates [ByteArray] comparator from this comparator.
@@ -56,18 +55,28 @@ internal fun Comparator<String>.toByteComparator(
  * @param charset [Charset]
  * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
- * therefore use identity-has-code that would be different for two arrays with the same content
- * @param map [String] -> [X] mapping
+ * therefore use identity-hash-code that would be different for two arrays with the same content
+ * @param toX [String] -> [X] mapping
  */
-fun <X> Comparator<X>.toByteComparator(
+fun <X> Comparator<X>.toByteArrayComparator(
     charset: Charset = Charsets.UTF_8,
-    cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
-    map: (String) -> X,
+    cache: MutableMap<ByteArray, String>? = null,
+    toX: (String) -> X,
 ): Comparator<ByteArray> {
-    val theCache = cache()
+    val toString: ByteArray.() -> String = { toString(charset, cache) }
+    return this.toByteArrayComparator(toString, toX)
+}
+
+/**
+ * Creates comparator for [ByteArray] using the specified mappers.
+ */
+fun <X> Comparator<X>.toByteArrayComparator(
+    asString: ByteArray.() -> String,
+    asX: String.() -> X,
+): Comparator<ByteArray> {
     return Comparator { a, b ->
-        val leftX = map(a.toString(charset, theCache))
-        val rightX = map(b.toString(charset, theCache))
+        val leftX = a.asString().asX()
+        val rightX = b.asString().asX()
         this.compare(leftX, rightX)
     }
 }
@@ -77,14 +86,15 @@ fun <X> Comparator<X>.toByteComparator(
  * @param charset [Charset]
  * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
- * therefore use identity-has-code that would be different for two arrays with the same content
+ * therefore use identity-hash-code that would be different for two arrays with the same content
  * @param map [String] -> [X] mapping
  */
 inline fun <reified X : Comparable<X>> byteArrayComparator(
     charset: Charset = Charsets.UTF_8,
-    noinline cache: () -> MutableMap<ByteArray, String>? = { hashMapOf() },
+    cache: MutableMap<ByteArray, String>? = null,
     noinline map: (String) -> X,
-): Comparator<ByteArray> = defaultComparator<X>().toByteComparator(charset, cache, map)
+): Comparator<ByteArray> = defaultComparator<X>().toByteArrayComparator(charset, cache, map)
+
 
 private fun ByteArray.toString(charset: Charset, cache: MutableMap<ByteArray, String>?): String =
     cache?.getOrPut(this) { toString(charset) } ?: toString(charset)

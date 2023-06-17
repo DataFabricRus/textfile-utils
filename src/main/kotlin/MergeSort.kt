@@ -136,7 +136,13 @@ suspend fun suspendSort(
                 buffer = readBuffer,
             ).toList().toTypedArray()
         }
-        writeLines(content.sort(comparator.toByteComparator(charset)), target, delimiterBytes, bomSymbols, writeBuffer)
+        writeLines(
+            content = content.sort(comparator.toByteArrayComparator(charset, hashMapOf())),
+            target = target,
+            delimiterBytes = delimiterBytes,
+            bomSymbols = bomSymbols,
+            buffer = writeBuffer
+        )
         if (controlDiskspace) {
             source.deleteExisting()
         }
@@ -220,8 +226,6 @@ internal suspend fun suspendSplitAndSort(
 
     val coroutineScope = CoroutineScope(coroutineContext) + CoroutineName("Writers[${source.fileName}]")
 
-    val bytesComparator = comparator.toByteComparator(charset)
-
     val lines = arrayListOf<ByteArray>()
     var chunkPosition = source.fileSize() - chunkSize
     var linePosition = source.fileSize()
@@ -249,7 +253,7 @@ internal suspend fun suspendSplitAndSort(
                     lines.clear()
                     writers.add(
                         coroutineScope.writeJob(
-                            content = linesSnapshot.sort(comparator.toByteComparator(charset) { hashMapOf() }),
+                            content = linesSnapshot.sort(comparator.toByteArrayComparator(charset, hashMapOf()) ),
                             target = res.put(source + ".${fileCounter++}.part"),
                             delimiterBytes = delimiterBytes,
                             bomSymbols = bomSymbols,
@@ -267,7 +271,7 @@ internal suspend fun suspendSplitAndSort(
             lines.clear()
             writers.add(
                 coroutineScope.writeJob(
-                    content = linesSnapshot.sort(bytesComparator),
+                    content = linesSnapshot.sort(comparator.toByteArrayComparator(charset, hashMapOf())),
                     target = res.put(source + ".${fileCounter++}.part"),
                     delimiterBytes = delimiterBytes,
                     bomSymbols = bomSymbols,

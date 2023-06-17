@@ -24,8 +24,8 @@ internal class BinarySearchTest {
         val readPosition = 64L
         val line = byteArrayOf(42, 42)
         val source = ByteBuffer.wrap(byteArrayOf(42, 124, 42, 42, 124, 52))
-        val res = mutableListOf<Pair<ByteArray, Long>>()
-        file.use {
+        val res = mutableListOf<ByteArray>()
+        val index = file.use {
             it.position(readPosition)
             it.readLeftLines(
                 readPosition = readPosition,
@@ -35,11 +35,11 @@ internal class BinarySearchTest {
                 comparator = defaultByteArrayComparator(),
                 maxOfLines = 42,
                 maxLineLengthInBytes = 1024,
-                res = res
+                res = res,
             )
         }
-        Assertions.assertEquals(listOf(46L, 49, 52, 55, 58, 61), res.map { it.second })
-        Assertions.assertEquals(setOf("**"), res.map { it.first.toString(Charsets.UTF_8) }.toSet())
+        Assertions.assertEquals(setOf("**", "**", "**", "**", "**", "**"), res.map { it.toString(Charsets.UTF_8) }.toSet())
+        Assertions.assertEquals(46, index)
     }
 
     @Test
@@ -57,7 +57,7 @@ internal class BinarySearchTest {
         val file = Files.createTempFile("xxx-binary-search-", ".xxx")
         file.writeText(txt, Charsets.UTF_8)
 
-        val res = mutableListOf<Pair<ByteArray, Long>>()
+        val res = mutableListOf<ByteArray>()
         file.use {
             it.position(readPosition)
             it.readRightLines(
@@ -67,10 +67,10 @@ internal class BinarySearchTest {
                 delimiter = delimiter,
                 comparator = defaultByteArrayComparator(),
                 maxOfLines = 42,
-                res = res
+                maxLineLengthInBytes = 1024,
+                res = res,
             )
         }
-        Assertions.assertEquals(listOf(19L, 22, 25, 28, 31, 34, 37), res.map { it.second })
-        Assertions.assertEquals(setOf("**"), res.map { it.first.toString(Charsets.UTF_8) }.toSet())
+        Assertions.assertEquals(listOf("**", "**", "**", "**", "**", "**", "**"), res.map { it.toString(Charsets.UTF_8) })
     }
 }

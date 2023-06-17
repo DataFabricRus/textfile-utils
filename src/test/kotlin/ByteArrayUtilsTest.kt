@@ -2006,7 +2006,7 @@ internal class ByteArrayUtilsTest {
             val a = left.substringAfterLast(":")
             val b = right.substringAfterLast(":")
             a.compareTo(b)
-        }.toByteComparator(charset)
+        }.toByteArrayComparator(charset)
 
         val res1 = binarySearch(
             line = "xxx:A".toByteArray(charset),

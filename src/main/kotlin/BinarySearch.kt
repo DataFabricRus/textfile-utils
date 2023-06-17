@@ -2,7 +2,61 @@ package com.gitlab.sszuev.textfiles
 
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
+import java.nio.charset.Charset
 
+
+private fun SeekableByteChannel.expandLines(
+    foundLines: List<ByteArray>,
+    startLinesPositionInclusive: Long,
+    endLinesPositionInclusive: Long,
+    buffer: ByteBuffer,
+    searchLine: ByteArray,
+    delimiter: ByteArray,
+    charset: Charset,
+    comparator: Comparator<String>,
+    maxOfLines: Int,
+    maxLineLengthInBytes: Int,
+): Pair<Long, List<ByteArray>> {
+    val byteArrayComparator = comparator.toByteArrayLinearSearchComparator(searchLine, charset)
+    val lines = mutableListOf<ByteArray>()
+    val startIndex = readLeftLines(
+        readPosition = startLinesPositionInclusive,
+        buffer = buffer,
+        searchLine = searchLine,
+        delimiter = delimiter,
+        comparator = byteArrayComparator,
+        maxOfLines = maxOfLines,
+        maxLineLengthInBytes = maxLineLengthInBytes,
+        res = lines
+    )
+    lines.addAll(foundLines)
+    readRightLines(
+        readPosition = endLinesPositionInclusive,
+        buffer = buffer,
+        searchLine = searchLine,
+        delimiter = delimiter,
+        comparator = byteArrayComparator,
+        maxOfLines = maxOfLines,
+        maxLineLengthInBytes = maxLineLengthInBytes,
+        res = lines
+    )
+    return startIndex to lines
+}
+
+private fun Comparator<String>.toByteArrayLinearSearchComparator(
+    searchLine: ByteArray,
+    charset: Charset
+): Comparator<ByteArray> {
+    val searchLineString = searchLine.toString(charset)
+    val asString: ByteArray.() -> String = {
+        if (this.size == searchLine.size && this.contentEquals(searchLine)) {
+            searchLineString
+        } else {
+            toString(charset)
+        }
+    }
+    return toByteArrayComparator(asString) { this }
+}
 
 internal fun SeekableByteChannel.readLeftLines(
     readPosition: Long, // start (inclusive) position of previous found line on the left
@@ -11,28 +65,28 @@ internal fun SeekableByteChannel.readLeftLines(
     delimiter: ByteArray,
     comparator: Comparator<ByteArray>,
     maxOfLines: Int,
-    maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
-    res: MutableList<Pair<ByteArray, Long>>,
-) {
-    var lineEndInclusive = readPosition - delimiter.size
-    this.readLinesAsByteArrays(
+    maxLineLengthInBytes: Int,
+    res: MutableList<ByteArray>,
+): Long {
+    var blockStartInclusive = readPosition
+    this.readLinesAsByteArrays( // TODO: need sync line-reader
         startAreaPositionInclusive = 0,
-        endAreaPositionExclusive = lineEndInclusive,
+        endAreaPositionExclusive = blockStartInclusive - delimiter.size,
         delimiter = delimiter,
         maxLineLengthInBytes = maxLineLengthInBytes,
         buffer = buffer,
         direct = false,
     ).forEach {
         if (comparator.compare(it, searchLine) != 0) {
-            return
+            return blockStartInclusive
         }
         require(res.size <= maxOfLines) {
             "max-number-of-lines=${maxOfLines} is exceeded"
         }
-        lineEndInclusive -= it.size
-        res.add(0, it to lineEndInclusive)
-        lineEndInclusive -= delimiter.size
+        blockStartInclusive -= (it.size + delimiter.size)
+        res.add(0, it)
     }
+    return blockStartInclusive
 }
 
 internal fun SeekableByteChannel.readRightLines(
@@ -42,12 +96,11 @@ internal fun SeekableByteChannel.readRightLines(
     delimiter: ByteArray,
     comparator: Comparator<ByteArray>,
     maxOfLines: Int,
-    maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
-    res: MutableList<Pair<ByteArray, Long>>,
+    maxLineLengthInBytes: Int,
+    res: MutableList<ByteArray>,
 ) {
-    var lineStartInclusive = readPosition + delimiter.size
-    this.readLinesAsByteArrays(
-        startAreaPositionInclusive = lineStartInclusive,
+    this.readLinesAsByteArrays( // TODO: need sync line-reader
+        startAreaPositionInclusive = readPosition + delimiter.size,
         endAreaPositionExclusive = size(),
         delimiter = delimiter,
         maxLineLengthInBytes = maxLineLengthInBytes,
@@ -60,7 +113,6 @@ internal fun SeekableByteChannel.readRightLines(
         require(res.size <= maxOfLines) {
             "max-number-of-lines=${maxOfLines} is exceeded"
         }
-        res.add(it to lineStartInclusive)
-        lineStartInclusive += it.size + delimiter.size
+        res.add(it)
     }
 }
