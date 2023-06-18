@@ -88,9 +88,9 @@ fun String.bytes(charset: Charset): ByteArray {
 }
 
 /**
- * Searches a range of the specified [source] for the specified [line] using the binary search algorithm.
+ * Searches a range of the specified [source] for the specified [searchLine] using the binary search algorithm.
  * The range must be sorted into ascending order according to the [comparator].
- * @param line [ByteArray]
+ * @param searchLine [ByteArray]
  * @param source [ByteBuffer]
  * @param sourceStartInclusive [Int]
  * @param sourceEndExclusive [Int]
@@ -112,8 +112,8 @@ fun String.bytes(charset: Charset): ByteArray {
  * this is the start position of the next (right) `Line`, note that the inserted data should contain delimiter bytes at the beginning
  * - `Lines(N, M, listOf(ByteArray ..))` - found, `N` (inclusive) and `M` (exclusive) positions (in the [source]) of block
  */
-fun binarySearch(
-    line: ByteArray,
+fun byteArrayBinarySearch(
+    searchLine: ByteArray,
     source: ByteBuffer,
     sourceStartInclusive: Int,
     sourceEndExclusive: Int,
@@ -129,11 +129,11 @@ fun binarySearch(
     while (low <= high) {
         if (low == high) {
             if (includeLeftBound && low == sourceStartInclusive) {
-                val n = sourceStartInclusive.toLong()
+                val n = sourceStartInclusive
                 return Lines(startInclusive = -1, endExclusive = n, lines = emptyList())
             }
             if (includeRightBound && high == sourceEndExclusive) {
-                val n = sourceEndExclusive.toLong()
+                val n = sourceEndExclusive
                 return Lines(startInclusive = n, endExclusive = -1, lines = emptyList())
             }
             throw IllegalStateException()
@@ -150,18 +150,18 @@ fun binarySearch(
         )
         if (current == null) {
             if (!includeLeftBound && low == sourceStartInclusive) {
-                val n = (high - 1).toLong()
+                val n = (high - 1)
                 return Lines(startInclusive = -1, endExclusive = n, lines = emptyList())
             }
             if (!includeRightBound && high == sourceEndExclusive) {
                 // end
-                val n = low.toLong()
+                val n = low
                 return Lines(startInclusive = n, endExclusive = -1, lines = emptyList())
             }
-            val n = high.toLong()
+            val n = high
             return Lines(startInclusive = n, endExclusive = n, lines = emptyList())
         }
-        val res = comparator.compare(line, current.first)
+        val res = comparator.compare(searchLine, current.first)
         val nextHigh = current.second // exclusive
         val nextLow = current.second + current.first.size // inclusive
         if (nextHigh == high && nextLow == low) {
@@ -173,7 +173,7 @@ fun binarySearch(
             low = nextLow
         } else {
             return findLineBlock(
-                line = current,
+                foundLine = current,
                 source = source,
                 sourceStartInclusive = sourceStartInclusive,
                 sourceEndExclusive = sourceEndExclusive,
@@ -190,12 +190,12 @@ fun binarySearch(
 /**
  * Finds the boundaries of the block containing the specified string.
  * E.g. for string `xx:13`, source `hh;ee;c;d;xx;xx;w;w;qq` and delimiter `;` the found block will be `xx:[10,15)`.
- * @param line [ByteArray]
+ * @param foundLine [ByteArray]
  * @param source [ByteBuffer]
  * @param sourceStartInclusive [Int]
  * @param sourceEndExclusive [Int]
  * @param delimiter [ByteArray]
- * @param comparator [Comparator] to select adjacent lines which equal to the given [line] ((compareTo = 0))
+ * @param comparator [Comparator] to select adjacent lines which equal to the given [foundLine] ((compareTo = 0))
  * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
  * otherwise [delimiter] is required before first line;
  * in other word the [source] is treated as if there is a [delimiter] before the left border
@@ -205,7 +205,7 @@ fun binarySearch(
  * @return [Lines]
  */
 internal fun findLineBlock(
-    line: Pair<ByteArray, Int>,
+    foundLine: Pair<ByteArray, Int>,
     source: ByteBuffer,
     sourceStartInclusive: Int,
     sourceEndExclusive: Int,
@@ -216,20 +216,20 @@ internal fun findLineBlock(
 ): Lines {
     checkLineSearchParameters(source, sourceStartInclusive, sourceEndExclusive, delimiter)
     // check left bound
-    if (line.startInclusive() - delimiter.size < sourceStartInclusive) {
+    if (foundLine.startInclusive() - delimiter.size < sourceStartInclusive) {
         if (!includeLeftBound) {
             return Lines.NULL
         }
-        if (line.startInclusive() != sourceStartInclusive) {
+        if (foundLine.startInclusive() != sourceStartInclusive) {
             return Lines.NULL
         }
     }
     // check right bound
-    if (line.endExclusive() > sourceEndExclusive - delimiter.size) {
+    if (foundLine.endExclusive() > sourceEndExclusive - delimiter.size) {
         if (!includeRightBound) {
             return Lines.NULL
         }
-        if (line.endExclusive() != sourceEndExclusive) {
+        if (foundLine.endExclusive() != sourceEndExclusive) {
             return Lines.NULL
         }
     }
@@ -237,8 +237,8 @@ internal fun findLineBlock(
     readLeftLinesBlock(
         source = source,
         sourceStartInclusive = sourceStartInclusive,
-        sourceEndExclusive = line.endExclusive(),
-        searchLine = line.bytes(),
+        sourceEndExclusive = foundLine.endExclusive(),
+        searchLine = foundLine.bytes(),
         delimiter = delimiter,
         comparator = comparator,
         includeLeftBound = includeLeftBound
@@ -252,9 +252,9 @@ internal fun findLineBlock(
     }
     readRightLinesBlock(
         source = source,
-        sourceStartInclusive = line.endExclusive() + delimiter.size,
+        sourceStartInclusive = foundLine.endExclusive() + delimiter.size,
         sourceEndExclusive = sourceEndExclusive,
-        searchLine = line.bytes(),
+        searchLine = foundLine.bytes(),
         delimiter = delimiter,
         comparator = comparator,
         includeRightBound = includeRightBound
@@ -263,7 +263,7 @@ internal fun findLineBlock(
     }
     val n = res.first().startInclusive()
     val m = res.last().endExclusive()
-    return Lines(n.toLong(), m.toLong(), res.map { it.first })
+    return Lines(n, m, res.map { it.first })
 }
 
 /**
@@ -587,7 +587,7 @@ private fun Pair<ByteArray, Int>.bytes() = this.first
  * this is the start position of the next (right) `Line`, note that the inserted bytes should contain delimiter at the beginning
  * - `Lines(N, M, listOf(ByteArray ..))` - found, `N` and `M` the positions (in the source) of block, inclusive and exclusive
  */
-data class Lines(val startInclusive: Long, val endExclusive: Long, val lines: List<ByteArray>) {
+data class Lines(val startInclusive: Int, val endExclusive: Int, val lines: List<ByteArray>) {
     companion object {
         val NULL = Lines(-1, -1, emptyList())
     }

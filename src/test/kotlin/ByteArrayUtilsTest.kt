@@ -789,7 +789,7 @@ internal class ByteArrayUtilsTest {
         sequenceOf(64, 70, 76).forEach {
             val line = "ii".toByteArray(charset) to it
             val res = findLineBlock(
-                line = line,
+                foundLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
@@ -820,7 +820,7 @@ internal class ByteArrayUtilsTest {
 
         val line = "aa".bytes(charset) to 10
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -848,7 +848,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " ;; ".toByteArray(charset)
         val line = "aa".toByteArray(charset) to 5
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -871,7 +871,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " ".toByteArray(charset)
         val line = "AA".toByteArray(charset) to 5
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -895,7 +895,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(Charsets.UTF_8)
         val line = "xx".toByteArray(Charsets.UTF_8) to 146
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 142,
             sourceEndExclusive = 148,
@@ -924,7 +924,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(Charsets.UTF_8)
         val line = "xx".toByteArray(Charsets.UTF_8) to 146
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 133,
             sourceEndExclusive = 148,
@@ -949,7 +949,7 @@ internal class ByteArrayUtilsTest {
 
         val line = "xx".toByteArray(Charsets.UTF_8) to 140
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 133,
             sourceEndExclusive = 148,
@@ -979,7 +979,7 @@ internal class ByteArrayUtilsTest {
 
         val line = "xx".toByteArray(Charsets.UTF_8) to 146
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 133,
             sourceEndExclusive = 148,
@@ -1007,7 +1007,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(Charsets.UTF_8)
         val line = "b".toByteArray(Charsets.UTF_8) to 11
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 26,
@@ -1037,7 +1037,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(charset)
         val line = "a".toByteArray(charset) to 0
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1067,7 +1067,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(charset)
         val line = "a".toByteArray(charset) to 0
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 5,
@@ -1092,7 +1092,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(charset)
         val line = "a".toByteArray(charset) to 0
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
@@ -1122,7 +1122,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = " && ".toByteArray(charset)
         val line = "b".toByteArray(charset) to 11
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 148,
@@ -1146,7 +1146,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = ";".toByteArray(Charsets.UTF_8)
         val line = "ტესტი".toByteArray(Charsets.UTF_8) to 265
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 133,
             sourceEndExclusive = 342,
@@ -1173,7 +1173,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = "|".toByteArray(Charsets.UTF_8)
         val line = "".toByteArray(Charsets.UTF_8) to 0
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
@@ -1199,7 +1199,7 @@ internal class ByteArrayUtilsTest {
         val delimiter = "|".toByteArray(Charsets.UTF_8)
         val line = "k".toByteArray(Charsets.UTF_8) to 2
         val res = findLineBlock(
-            line = line,
+            foundLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
@@ -1227,7 +1227,7 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val res = findLineBlock(
-            line = "10".toByteArray(charset) to 18,
+            foundLine = "10".toByteArray(charset) to 18,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 20,
@@ -1254,7 +1254,7 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "``".toByteArray(charset)
         val res = findLineBlock(
-            line = "".toByteArray(charset) to 4,
+            foundLine = "".toByteArray(charset) to 4,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 12,
@@ -1281,7 +1281,7 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "``".toByteArray(charset)
         val res = findLineBlock(
-            line = "".toByteArray(charset) to 14,
+            foundLine = "".toByteArray(charset) to 14,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 4,
             sourceEndExclusive = 21,
@@ -1309,8 +1309,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "b".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1334,8 +1334,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "l".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1359,8 +1359,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "l".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1384,8 +1384,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "xx".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1409,8 +1409,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "a".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
@@ -1436,8 +1436,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = " && ".toByteArray(charset)
         val line = "ccc".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
@@ -1465,8 +1465,8 @@ internal class ByteArrayUtilsTest {
         val delimiter = "%".toByteArray(charset)
         data.forEach { word ->
             val line = word.toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
@@ -1491,8 +1491,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "2".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1518,8 +1518,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "4".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1545,8 +1545,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "1".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1572,8 +1572,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "10".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1599,8 +1599,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "-42".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1626,8 +1626,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "42".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1653,8 +1653,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "3".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 2,
             sourceEndExclusive = 13,
@@ -1680,8 +1680,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "%".toByteArray(charset)
         val line = "42".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 9,
             sourceEndExclusive = 13,
@@ -1715,8 +1715,8 @@ internal class ByteArrayUtilsTest {
 
         mapOf("ad" to (0 to 2), "adipiscing" to (3 to 13), "aliqua" to (14 to 20)).forEach { (w, i) ->
             val line = w.toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 0,
                 sourceEndExclusive = 42,
@@ -1725,8 +1725,8 @@ internal class ByteArrayUtilsTest {
                 includeLeftBound = true,
                 includeRightBound = false,
             )
-            Assertions.assertEquals(i.first.toLong(), res.startInclusive) { "word='$w', expected indexes=$i" }
-            Assertions.assertEquals(i.second.toLong(), res.endExclusive) { "word='$w', expected indexes=$i" }
+            Assertions.assertEquals(i.first, res.startInclusive) { "word='$w', expected indexes=$i" }
+            Assertions.assertEquals(i.second, res.endExclusive) { "word='$w', expected indexes=$i" }
             Assertions.assertEquals(listOf(w), res.lines(charset)) { "word='$w', expected indexes=$i" }
         }
     }
@@ -1756,8 +1756,8 @@ internal class ByteArrayUtilsTest {
             ("voluptate" to 1) to (428 to 437),
         ).forEach { (w, i) ->
             val line = w.first.toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 42,
                 sourceEndExclusive = 437,
@@ -1766,8 +1766,8 @@ internal class ByteArrayUtilsTest {
             )
             val expected = (0 until w.second).map { w.first }
             Assertions.assertEquals(expected, res.lines(charset)) { "word='$w', expected indexes=$i" }
-            Assertions.assertEquals(i.first.toLong(), res.startInclusive) { "word='$w', expected indexes=$i" }
-            Assertions.assertEquals(i.second.toLong(), res.endExclusive) { "word='$w', expected indexes=$i" }
+            Assertions.assertEquals(i.first, res.startInclusive) { "word='$w', expected indexes=$i" }
+            Assertions.assertEquals(i.second, res.endExclusive) { "word='$w', expected indexes=$i" }
         }
     }
 
@@ -1791,8 +1791,8 @@ internal class ByteArrayUtilsTest {
 
         (3..12).forEach {
             val line = "adipiscing".toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = it,
                 sourceEndExclusive = 42,
@@ -1827,8 +1827,8 @@ internal class ByteArrayUtilsTest {
 
         (428..436).forEach {
             val line = "voluptate".toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 221,
                 sourceEndExclusive = it,
@@ -1854,8 +1854,8 @@ internal class ByteArrayUtilsTest {
         val charset = Charsets.UTF_8
         val source = txt.toByteArray(charset)
         val delimiter = "`".toByteArray(charset)
-        val res = binarySearch(
-            line = byteArrayOf(), // empty string
+        val res = byteArrayBinarySearch(
+            searchLine = byteArrayOf(), // empty string
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1876,8 +1876,8 @@ internal class ByteArrayUtilsTest {
         val charset = Charsets.UTF_8
         val source = txt.toByteArray(charset)
         val delimiter = "``".toByteArray(charset)
-        val res = binarySearch(
-            line = byteArrayOf(), // empty string
+        val res = byteArrayBinarySearch(
+            searchLine = byteArrayOf(), // empty string
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1896,8 +1896,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "\n".toByteArray(charset)
         val line = "ການທົດສອບ".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1914,8 +1914,8 @@ internal class ByteArrayUtilsTest {
         val source = txt.toByteArray(charset)
         val delimiter = "\n".toByteArray(charset)
         val line = "ፈተና".toByteArray(charset)
-        val res = binarySearch(
-            line = line,
+        val res = byteArrayBinarySearch(
+            searchLine = line,
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
@@ -1935,8 +1935,8 @@ internal class ByteArrayUtilsTest {
 
         data.forEach { word ->
             val line = word.toByteArray(charset)
-            val res = binarySearch(
-                line = line,
+            val res = byteArrayBinarySearch(
+                searchLine = line,
                 source = ByteBuffer.wrap(source),
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
@@ -1953,8 +1953,8 @@ internal class ByteArrayUtilsTest {
         val charset = Charsets.UTF_8
         val source = txt.toByteArray(charset)
         val delimiter = ",".toByteArray(charset)
-        val res1 = binarySearch(
-            line = "42".toByteArray(charset),
+        val res1 = byteArrayBinarySearch(
+            searchLine = "42".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 1,
@@ -1966,8 +1966,8 @@ internal class ByteArrayUtilsTest {
         Assertions.assertEquals(1, res1.startInclusive)
         Assertions.assertEquals(-1, res1.endExclusive)
         Assertions.assertTrue(res1.lines.isEmpty())
-        val res2 = binarySearch(
-            line = "".toByteArray(charset),
+        val res2 = byteArrayBinarySearch(
+            searchLine = "".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 1,
@@ -2008,8 +2008,8 @@ internal class ByteArrayUtilsTest {
             a.compareTo(b)
         }.toByteArrayComparator(charset)
 
-        val res1 = binarySearch(
-            line = "xxx:A".toByteArray(charset),
+        val res1 = byteArrayBinarySearch(
+            searchLine = "xxx:A".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 515,
@@ -2025,16 +2025,14 @@ internal class ByteArrayUtilsTest {
             ), res1.lines(charset)
         )
 
-        val res2 = binarySearch(
-            line = ":B".toByteArray(charset),
+        val res2 = byteArrayBinarySearch(
+            searchLine = ":B".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 515,
             delimiter = delimiter,
             comparator = comparator,
         )
-        println(res2)
-        println(res2.lines(charset))
 
         Assertions.assertEquals(86, res2.startInclusive)
         Assertions.assertEquals(214, res2.endExclusive)
@@ -2046,16 +2044,14 @@ internal class ByteArrayUtilsTest {
             ), res2.lines(charset)
         )
 
-        val res3 = binarySearch(
-            line = "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:D".toByteArray(charset),
+        val res3 = byteArrayBinarySearch(
+            searchLine = "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:D".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 515,
             delimiter = delimiter,
             comparator = comparator,
         )
-        println(res3)
-        println(res3.lines(charset))
 
         Assertions.assertEquals(301, res3.startInclusive)
         Assertions.assertEquals(343, res3.endExclusive)
@@ -2065,16 +2061,14 @@ internal class ByteArrayUtilsTest {
             ), res3.lines(charset)
         )
 
-        val res4 = binarySearch(
-            line = "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:G".toByteArray(charset),
+        val res4 = byteArrayBinarySearch(
+            searchLine = "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:G".toByteArray(charset),
             source = ByteBuffer.wrap(source),
             sourceStartInclusive = 0,
             sourceEndExclusive = 515,
             delimiter = delimiter,
             comparator = comparator,
         )
-        println(res4)
-        println(res4.lines(charset))
 
         Assertions.assertEquals(473, res4.startInclusive)
         Assertions.assertEquals(515, res4.endExclusive)

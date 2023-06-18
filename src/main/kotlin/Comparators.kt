@@ -95,6 +95,25 @@ inline fun <reified X : Comparable<X>> byteArrayComparator(
     noinline map: (String) -> X,
 ): Comparator<ByteArray> = defaultComparator<X>().toByteArrayComparator(charset, cache, map)
 
+/**
+ * Creates [Comparator]<[ByteArray]> with cache for the given line only.
+ * Used in linear search.
+ */
+internal fun Comparator<String>.toByteArrayLinearSearchComparator(
+    searchLine: ByteArray,
+    charset: Charset,
+): Comparator<ByteArray> {
+    val searchLineString = searchLine.toString(charset)
+    val asString: ByteArray.() -> String = {
+        if (this.size == searchLine.size && this.contentEquals(searchLine)) {
+            searchLineString
+        } else {
+            toString(charset)
+        }
+    }
+    return toByteArrayComparator(asString) { this }
+}
+
 
 private fun ByteArray.toString(charset: Charset, cache: MutableMap<ByteArray, String>?): String =
     cache?.getOrPut(this) { toString(charset) } ?: toString(charset)

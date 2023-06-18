@@ -120,7 +120,7 @@ fun SeekableByteChannel.readLines(
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
  * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
  * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
- * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack when there is no delimiter for example, default = `8192`
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g. when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [Sequence]<[ByteArray]> of lines starting from the end of segment to the beginning
@@ -159,6 +159,7 @@ fun SeekableByteChannel.readLinesAsByteArrays(
 
 /**
  * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive].
+ * TODO: closeable + catch exceptions
  */
 internal class LineReader(
     private val source: SeekableByteChannel,
