@@ -11,6 +11,8 @@ import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.deleteIfExists
+import kotlin.io.path.fileSize
+import kotlin.io.path.inputStream
 
 /**
  * Inserts the given [data] at the [specified position][beforePosition] of channel.
@@ -156,6 +158,33 @@ fun isSorted(
 }
 
 /**
+ * Answers `true` if content of two files are identical.
+ */
+fun contentEquals(left: Path, right: Path): Boolean {
+    if (left.fileSize() != right.fileSize()) {
+        return false
+    }
+    left.inputStream().buffered().use { leftStream ->
+        right.inputStream().buffered().use {  rightStream ->
+            val leftBytes = leftStream.iterator()
+            val rightBytes = rightStream.iterator()
+            while (leftBytes.hasNext()) {
+                if (!rightBytes.hasNext()) {
+                    return false
+                }
+                if (leftBytes.nextByte() != rightBytes.nextByte()) {
+                    return false
+                }
+            }
+            if (rightBytes.hasNext()) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+/**
  * Opens or creates file, executes the [block], then closes the channel.
  * Please note: any IO operation (stream) must be closed (collected) inside the [block],
  * otherwise [java.nio.channels.ClosedChannelException] is expected.
@@ -241,16 +270,3 @@ fun Collection<Path>.deleteAll(): Boolean {
  * Appends String suffix returning new [Path].
  */
 internal operator fun Path.plus(suffix: String): Path = parent.resolve(fileName.toString() + suffix)
-
-internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
-    require(maxChunkSize in 1..totalSize)
-    if (totalSize == maxChunkSize.toLong() || totalSize % maxChunkSize == 0L) {
-        return maxChunkSize
-    }
-    var res = maxChunkSize
-    while (totalSize - (totalSize / res) * res > res || totalSize % res < res * SORT_FILE_CHUNK_GAP) {
-        res--
-    }
-    check(res > 0) { "total=$totalSize, max=$maxChunkSize, chunk=$res" }
-    return res
-}

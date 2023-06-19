@@ -293,6 +293,19 @@ internal suspend fun suspendSplitAndSort(
     return res
 }
 
+internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
+    require(maxChunkSize in 1..totalSize)
+    if (totalSize == maxChunkSize.toLong() || totalSize % maxChunkSize == 0L) {
+        return maxChunkSize
+    }
+    var res = maxChunkSize
+    while (totalSize - (totalSize / res) * res > res || totalSize % res < res * SORT_FILE_CHUNK_GAP) {
+        res--
+    }
+    check(res > 0) { "total=$totalSize, max=$maxChunkSize, chunk=$res" }
+    return res
+}
+
 private fun SeekableByteChannel.readLinesBytes(
     controlDiskSpace: Boolean = false,
     coroutineContext: CoroutineContext = Dispatchers.IO,

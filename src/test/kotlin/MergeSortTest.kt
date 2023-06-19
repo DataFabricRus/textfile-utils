@@ -132,6 +132,7 @@ internal class MergeSortTest {
             }
             Assertions.assertEquals(0, num)
         }
+
     }
 
     @Test
@@ -252,6 +253,44 @@ internal class MergeSortTest {
 
         checkIsSorted(target, comparator, numLines + numDuplicates)
         Assertions.assertEquals(fileSize, target.fileSize())
+    }
+
+    @Test
+    fun `test suspended sort another large file`(@TempDir dir: Path): Unit = runBlocking {
+        val charset = Charsets.UTF_8
+        val givenContent =
+            MergeSortTest::class.java.getResourceAsStream("/shuffled.csv")!!.bufferedReader(charset).readText()
+        val expectedContent =
+            MergeSortTest::class.java.getResourceAsStream("/sorted.csv")!!.bufferedReader(charset).readText()
+
+        val source = Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        source.writeText(givenContent, charset)
+        val expected = Files.createTempFile(dir, "xxx-merge-sort-expected-", ".xxx")
+        expected.writeText(expectedContent, charset)
+
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+
+        val fileSize = source.fileSize()
+        val allocatedMemory = fileSize.toInt() / 10
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore(":")
+            val b = right.substringBefore(":")
+            a.compareTo(b)
+        }.thenComparing { a, b ->
+            a.substringAfter(":").compareTo(b.substringAfter(":"))
+        }
+
+        sort(
+            source = source,
+            target = target,
+            delimiter = "\n",
+            controlDiskspace = false,
+            charset = charset,
+            allocatedMemorySizeInBytes = allocatedMemory,
+            comparator = comparator,
+        )
+
+        Assertions.assertTrue(contentEquals(expected, target))
     }
 
     private suspend fun testSortRelativelySmallFile(
