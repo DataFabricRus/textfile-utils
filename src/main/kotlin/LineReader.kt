@@ -91,7 +91,7 @@ fun SeekableByteChannel.readLines(
             }.asResourceIterator()
         }
     }
-    return readLinesAsByteArrays(
+    return asyncReadByteLines(
         startAreaPositionInclusive = startAreaPositionInclusive + bomSymbols.size,
         endAreaPositionExclusive = endAreaPositionExclusive,
         delimiter = delimiter.bytes(charset),
@@ -110,6 +110,13 @@ fun SeekableByteChannel.readLines(
  * Reads text [ByteArray]-lines from the given area of file.
  * The area is set by the specified [startAreaPositionInclusive] and [endAreaPositionExclusive].
  * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
+ * This method works **asynchronously**, which means that the read does not block current context:
+ * each read operation is performed in a dedicated coroutine context, emitting next [ByteArray]-item on demand.
+ * For control read process internal blocking queue is used,
+ * when it is full IO-read stops util the method [Iterator.next] is called.
+ * This allows to use different reading processes in parallel.
+ * **Note:** [ResourceIterator] must be closed on finish to release internal resources and stop reading,
+ * but this closing won't close this [SeekableByteChannel] channel.
  *
  * @param [startAreaPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
  * @param [endAreaPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
@@ -126,7 +133,7 @@ fun SeekableByteChannel.readLines(
  * @return [ResourceIterator]<[ByteArray]> of lines starting from the end of segment to the beginning
  * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */
-fun SeekableByteChannel.readLinesAsByteArrays(
+fun SeekableByteChannel.asyncReadByteLines(
     startAreaPositionInclusive: Long = 0,
     endAreaPositionExclusive: Long = size(),
     delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
@@ -139,7 +146,7 @@ fun SeekableByteChannel.readLinesAsByteArrays(
     coroutineName: String = "AsyncLineReader",
     coroutineContext: CoroutineContext = Dispatchers.IO,
 ): ResourceIterator<ByteArray> {
-    val reader = LineReader(
+    val reader = AsyncLineReader(
         source = this,
         direct = direct,
         startAreaPositionInclusive = startAreaPositionInclusive,
@@ -158,24 +165,104 @@ fun SeekableByteChannel.readLinesAsByteArrays(
 }
 
 /**
- * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive].
- * TODO: closeable + catch exceptions
+ * Reads text [ByteArray]-lines from the given area of file.
+ * The area is set by the specified [startAreaPositionInclusive] and [endAreaPositionExclusive].
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
+ * **Note:** after [ResourceIterator.close] no further reading is possible.
+ *
+ * @param [startAreaPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
+ * @param [endAreaPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
+ * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
+ * otherwise the reading is reversed (from the end to start)
+ * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
+ * @param [delimiter] lines-separator; default `\n`
+ * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g. when there is no delimiter, default = `8192`
+ * @return [ResourceIterator]<[ByteArray]> of lines starting from the end of segment to the beginning
+ * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */
-@Suppress("DuplicatedCode")
-internal class LineReader(
-    private val source: SeekableByteChannel,
-    private val direct: Boolean,
-    private val startAreaPositionInclusive: Long,
-    private val endAreaPositionExclusive: Long,
-    private val listener: (Long) -> Unit,
-    private val buffer: ByteBuffer,
-    private val itemTimeoutInMs: Long,
-    private val delimiter: ByteArray,
-    private val maxLineLength: Int,
-    queueSize: Int,
-) : AutoCloseable {
+fun SeekableByteChannel.syncReadByteLines(
+    startAreaPositionInclusive: Long = 0,
+    endAreaPositionExclusive: Long = size(),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    listener: (Long) -> Unit = {},
+    direct: Boolean = true,
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
+    maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
+): ResourceIterator<ByteArray> = SyncLineReader(
+    source = this,
+    direct = direct,
+    startAreaPositionInclusive = startAreaPositionInclusive,
+    endAreaPositionExclusive = endAreaPositionExclusive,
+    listener = listener,
+    buffer = buffer,
+    delimiter = delimiter,
+    maxLineLength = maxLineLengthInBytes,
+).lines()
 
-    private val end: AtomicBoolean = AtomicBoolean(false)
+/**
+ * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive] synchronously.
+ */
+class SyncLineReader (
+    source: SeekableByteChannel,
+    listener: (Long) -> Unit,
+    buffer: ByteBuffer,
+    delimiter: ByteArray,
+    maxLineLength: Int,
+    direct: Boolean,
+    startAreaPositionInclusive: Long,
+    endAreaPositionExclusive: Long,
+) : LineReader(
+    source = source,
+    direct = direct,
+    startAreaPositionInclusive = startAreaPositionInclusive,
+    endAreaPositionExclusive = endAreaPositionExclusive,
+    listener = listener,
+    buffer = buffer,
+    delimiter = delimiter,
+    maxLineLength = maxLineLength
+) {
+
+    override fun close() {
+        end.set(true)
+    }
+
+    override fun lines(): ResourceIterator<ByteArray> = iterator {
+        if (direct) directRead {
+            yield(it)
+        } else reverseRead {
+            yield(it)
+        }
+    }.asResourceIterator {
+        close()
+    }
+}
+
+/**
+ * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive] asynchronously.
+ */
+class AsyncLineReader internal constructor(
+    source: SeekableByteChannel,
+    listener: (Long) -> Unit,
+    buffer: ByteBuffer,
+    delimiter: ByteArray,
+    maxLineLength: Int,
+    queueSize: Int,
+    direct: Boolean,
+    startAreaPositionInclusive: Long,
+    endAreaPositionExclusive: Long,
+    private val itemTimeoutInMs: Long,
+) : LineReader(
+    source = source,
+    direct = direct,
+    startAreaPositionInclusive = startAreaPositionInclusive,
+    endAreaPositionExclusive = endAreaPositionExclusive,
+    listener = listener,
+    buffer = buffer,
+    delimiter = delimiter,
+    maxLineLength = maxLineLength
+) {
+
     private val error: AtomicReference<Throwable> = AtomicReference()
     private val queue: BlockingQueue<ByteArray> = ArrayBlockingQueue(queueSize)
 
@@ -184,7 +271,7 @@ internal class LineReader(
         queue.clear()
     }
 
-    fun lines(): ResourceIterator<ByteArray> = iterator {
+    override fun lines(): ResourceIterator<ByteArray> = iterator {
         while (!end.get() || queue.isNotEmpty()) {
             error.get()?.let { throw it }
             queue.poll()?.let {
@@ -198,7 +285,11 @@ internal class LineReader(
 
     fun run() {
         try {
-            if (direct) directRead() else reverseRead()
+            if (direct) directRead {
+                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+            } else reverseRead {
+                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+            }
         } catch (ex: Throwable) {
             error.set(ex)
             throw ex
@@ -206,60 +297,79 @@ internal class LineReader(
             end.set(true)
         }
     }
+}
 
-    private fun directRead() {
+abstract class LineReader internal constructor(
+    private val source: SeekableByteChannel,
+    protected val direct: Boolean,
+    protected val startAreaPositionInclusive: Long,
+    protected val endAreaPositionExclusive: Long,
+    protected val listener: (Long) -> Unit,
+    protected val buffer: ByteBuffer,
+    private val delimiter: ByteArray,
+    private val maxLineLength: Int,
+) : AutoCloseable {
+
+    protected val end: AtomicBoolean = AtomicBoolean(false)
+
+    override fun close() {
+        end.set(true)
+    }
+
+    abstract fun lines(): ResourceIterator<ByteArray>
+
+    protected inline fun directRead(onEach: (ByteArray) -> Unit) {
         var startIndex = startAreaPositionInclusive
         var remainder = ByteArray(0)
         while (startIndex < endAreaPositionExclusive && !end.get()) {
             val endIndex = min(endAreaPositionExclusive - 1, startIndex + buffer.capacity() - 1)
-            val readBytes = (endIndex - startIndex + 1).toInt()
-            buffer.rewind()
-            buffer.limit(readBytes)
-            source.position(startIndex)
-            if (end.get()) return
-            source.read(buffer)
+            val readBytes = read(startIndex, endIndex)
             listener(endIndex)
             val linesToRemainder = buffer.directLines(length = readBytes, remainder = ByteBuffer.wrap(remainder))
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.forEach {
-                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                onEach(it)
             }
             if (endIndex == endAreaPositionExclusive - 1) {
-                check(queue.offer(remainder, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                onEach(remainder)
             }
             startIndex = endIndex + 1
         }
     }
 
-    private fun reverseRead() {
+    protected inline fun reverseRead(onEach: (ByteArray) -> Unit) {
         listener(endAreaPositionExclusive)
         var endIndex = endAreaPositionExclusive - 1
         var remainder = ByteArray(0)
         while (endIndex >= startAreaPositionInclusive && !end.get()) {
             val startIndex = max(startAreaPositionInclusive, endIndex + 1 - buffer.capacity())
-            val readBytes = (endIndex - startIndex + 1).toInt()
-            buffer.rewind()
-            buffer.limit(readBytes)
-            source.position(startIndex)
-            if (end.get()) return
-            source.read(buffer)
+            val readBytes = read(startIndex, endIndex)
             listener(startIndex)
             buffer.rewind()
             val linesToRemainder = buffer.reverseLines(length = readBytes, remainder = ByteBuffer.wrap(remainder))
             remainder = linesToRemainder.second
             val readLines = linesToRemainder.first
             readLines.indices.reversed().forEach {
-                check(queue.offer(readLines[it], itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                onEach(readLines[it])
             }
             if (startIndex == startAreaPositionInclusive) {
-                check(queue.offer(remainder, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                onEach(remainder)
             }
             endIndex = startIndex - 1
         }
     }
 
-    private fun ByteBuffer.directLines(
+    protected fun read(startIndex: Long, endIndex: Long): Int {
+        val readBytes = (endIndex - startIndex + 1).toInt()
+        buffer.rewind()
+        buffer.limit(readBytes)
+        source.position(startIndex)
+        source.read(buffer)
+        return readBytes
+    }
+
+    protected fun ByteBuffer.directLines(
         length: Int,
         remainder: ByteBuffer
     ): Pair<List<ByteArray>, ByteArray> {
@@ -271,7 +381,7 @@ internal class LineReader(
         return lines.toList() to nextRemainder
     }
 
-    private fun ByteBuffer.reverseLines(
+    protected fun ByteBuffer.reverseLines(
         length: Int,
         remainder: ByteBuffer
     ): Pair<List<ByteArray>, ByteArray> {

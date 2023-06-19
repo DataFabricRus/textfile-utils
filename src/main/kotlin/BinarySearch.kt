@@ -154,14 +154,13 @@ internal fun SeekableByteChannel.readLeftLines(
     res: MutableList<ByteArray>,
 ): Long {
     var blockStartInclusive = readPosition
-    this.readLinesAsByteArrays(
+    this.syncReadByteLines(
         startAreaPositionInclusive = 0,
         endAreaPositionExclusive = blockStartInclusive - delimiter.size,
         delimiter = delimiter,
         maxLineLengthInBytes = maxLineLengthInBytes,
         buffer = buffer,
         direct = false,
-        internalQueueSize = 1,
     ).forEach {
         if (comparator.compare(it, searchLine) != 0) {
             return blockStartInclusive
@@ -185,14 +184,13 @@ internal fun SeekableByteChannel.readRightLines(
     maxLineLengthInBytes: Int,
     res: MutableList<ByteArray>,
 ) {
-    this.readLinesAsByteArrays(
+    this.syncReadByteLines(
         startAreaPositionInclusive = readPosition + delimiter.size,
         endAreaPositionExclusive = size(),
         delimiter = delimiter,
         maxLineLengthInBytes = maxLineLengthInBytes,
         buffer = buffer,
         direct = true,
-        internalQueueSize = 1,
     ).forEach {
         if (comparator.compare(it, searchLine) != 0) {
             return

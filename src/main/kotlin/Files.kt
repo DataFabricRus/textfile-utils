@@ -102,7 +102,7 @@ fun invert(
         Files.newByteChannel(source, StandardOpenOption.READ, StandardOpenOption.WRITE).use { src ->
             dst.write(ByteBuffer.wrap(bomSymbols))
             var position = src.size()
-            src.readLinesAsByteArrays(
+            src.syncReadByteLines(
                 startAreaPositionInclusive = bomSymbols.size.toLong(),
                 endAreaPositionExclusive = src.size(),
                 delimiter = delimiterBytes,
