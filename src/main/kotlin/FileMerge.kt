@@ -141,22 +141,24 @@ fun mergeFilesInverse(
             if (bomSymbols.isNotEmpty()) {
                 res.write(ByteBuffer.wrap(bomSymbols))
             }
-            mergeSequences(inputs.map { it.second }, comparator).forEach { line ->
-                if (!firstLine) {
-                    res.writeData(delimiterBytes, writeBuffer)
+            inputs.map { it.second }.use {
+                mergeIterators(it, comparator).forEach { line ->
+                    if (!firstLine) {
+                        res.writeData(delimiterBytes, writeBuffer)
+                    }
+                    firstLine = false
+                    res.writeData(line.bytes(charset), writeBuffer)
+                    if (controlDiskspace) {
+                        source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
+                    }
                 }
-                firstLine = false
-                res.writeData(line.bytes(charset), writeBuffer)
-                if (controlDiskspace) {
-                    source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
-                }
-            }
-            if (writeBuffer.position() > 0) {
-                writeBuffer.limit(writeBuffer.position())
-                writeBuffer.position(0)
-                res.write(writeBuffer)
-                if (controlDiskspace) {
-                    source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
+                if (writeBuffer.position() > 0) {
+                    writeBuffer.limit(writeBuffer.position())
+                    writeBuffer.position(0)
+                    res.write(writeBuffer)
+                    if (controlDiskspace) {
+                        source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
+                    }
                 }
             }
         }

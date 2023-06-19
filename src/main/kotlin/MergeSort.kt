@@ -299,7 +299,7 @@ private fun SeekableByteChannel.readLinesBytes(
     delimiterBytes: ByteArray,
     bomSymbols: ByteArray,
     buffer: ByteBuffer,
-): Sequence<ByteArray> {
+): ResourceIterator<ByteArray> {
     return readLinesAsByteArrays(
         startAreaPositionInclusive = bomSymbols.size.toLong(),
         endAreaPositionExclusive = size(),

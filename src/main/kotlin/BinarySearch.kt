@@ -155,7 +155,6 @@ internal fun SeekableByteChannel.readLeftLines(
 ): Long {
     var blockStartInclusive = readPosition
     this.readLinesAsByteArrays(
-        // TODO: need sync line-reader
         startAreaPositionInclusive = 0,
         endAreaPositionExclusive = blockStartInclusive - delimiter.size,
         delimiter = delimiter,
@@ -187,7 +186,6 @@ internal fun SeekableByteChannel.readRightLines(
     res: MutableList<ByteArray>,
 ) {
     this.readLinesAsByteArrays(
-        // TODO: need sync line-reader
         startAreaPositionInclusive = readPosition + delimiter.size,
         endAreaPositionExclusive = size(),
         delimiter = delimiter,
