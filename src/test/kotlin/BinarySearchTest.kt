@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.useLines
 import kotlin.io.path.writeText
 
 internal class BinarySearchTest {
@@ -169,6 +170,40 @@ internal class BinarySearchTest {
         Assertions.assertEquals(listOf(
             "f937a264-abef-4d3e-ad86-90c0a0d85e7a:012:G",
         ), resG.second.map { it.toString(charset) })
+    }
+
+    @Test
+    fun `test binary-search large file`(@TempDir dir: Path) {
+        val charset = Charsets.UTF_8
+        val content =
+            MergeSortTest::class.java.getResourceAsStream("/sorted.csv")!!.bufferedReader(charset).readText()
+
+        val source = Files.createTempFile(dir, "xxx-binary-search-", ".xxx")
+        source.writeText(content, charset)
+
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore(":")
+            val b = right.substringBefore(":")
+            a.compareTo(b)
+        }
+
+        source.useLines { lines ->
+            lines.forEach { line ->
+                val searchString = line.substringBefore(":")
+                val expectedBlockSize = line.substringAfter(":").substringBefore(":").toInt()
+                val found = binarySearch(
+                    source = source,
+                    searchLine = searchString,
+                    comparator = comparator,
+                )
+                Assertions.assertEquals(expectedBlockSize, found.second.size)
+                found.second.forEach {
+                    Assertions.assertTrue(it.length > searchString.length)
+                    Assertions.assertTrue(it.startsWith(searchString + ":"))
+                }
+            }
+        }
+
     }
 
     @Test

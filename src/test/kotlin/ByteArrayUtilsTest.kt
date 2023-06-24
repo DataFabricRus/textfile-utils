@@ -2,7 +2,12 @@ package com.gitlab.sszuev.textfiles
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import kotlin.io.path.writeText
 
 internal class ByteArrayUtilsTest {
 
@@ -1299,7 +1304,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-a`() {
+    fun `test byte-array binary search #1-a`() {
         // ...   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31, ...
         // ...  97,  32,  38,  38,  32,  98,  32,  38,  38,  32,  98,  32,  38,  38,  32,  98,  32,  38,  38,  32,  98,  32,  38,  38,  32,  99, ...
         // ...   a,    ,   &,   &,    ,   b,    ,   &,   &,    ,   b,    ,   &,   &,    ,   b,    ,   &,   &,    ,   b,    ,   &,   &,    ,   c, ...
@@ -1323,7 +1328,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-b`() {
+    fun `test byte-array binary search #1-b`() {
         // ...  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112 ...
         // ... 107,  32,  38,  38,  32, 107, 107, 107,  32,  38,  38,  32, 108,  32,  38,  38,  32, 111, 111,  32,  38,  38,  32, 112...
         // ...   k,    ,   &,   &,    ,   k,   k,   k,    ,   &,   &,    ,   l,    ,   &,   &,    ,   o,   o,    ,   &,   &,    ,   p...
@@ -1348,7 +1353,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-c`() {
+    fun `test byte-array binary search #1-c`() {
         // ...  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, ...
         // ... 107,  32,  38,  38,  32, 107, 107, 107,  32,  38,  38,  32, 108,  32,  38,  38,  32, 111, 111,  32,  38,  38,  32, ...
         // ...   k,    ,   &,   &,    ,   k,   k,   k,    ,   &,   &,    ,   l,    ,   &,   &,    ,   o,   o,    ,   &,   &,    , ...
@@ -1373,7 +1378,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-d`() {
+    fun `test byte-array binary search #1-d`() {
         // ... 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147]
         // ... 119,  32,  38,  38,  32, 120,  32,  38,  38,  32, 120, 120,  32,  38,  38,  32, 120, 120]
         // ...   w,    ,   &,   &,    ,   x,    ,   &,   &,    ,   x,   x,    ,   &,   &,    ,   x,   x]
@@ -1398,7 +1403,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-e`() {
+    fun `test byte-array binary search #1-e`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  ...
         // [ 97,  32,  38,  38,  32,  97,  97,  32,  38,  38,  32,  ...
         // [  a,    ,   &,   &,    ,   a,   a,    ,   &,   &,    ,  ...
@@ -1425,7 +1430,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #1-f`() {
+    fun `test byte-array binary search #1-f`() {
         // ... 25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47,  48, ...
         // ... 32,  98,  32,  38,  38,  32,  99,  99, 100,  32,  38,  38,  32,  99,  99, 100,  32,  38,  38,  32, 100, 102, 103,  32, ...
         // ...   ,   b,    ,   &,   &,    ,   c,   c,   d,    ,   &,   &,    ,   c,   c,   d,    ,   &,   &,    ,   d,   f,   g,    , ...
@@ -1453,7 +1458,7 @@ internal class ByteArrayUtilsTest {
 
 
     @Test
-    fun `test binary search #2-a`() {
+    fun `test byte-array binary search #2-a`() {
         // [  0,   1,   4,   5,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1480,7 +1485,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-b`() {
+    fun `test byte-array binary search #2-b`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1507,7 +1512,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-c`() {
+    fun `test byte-array binary search #2-c`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1534,7 +1539,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-d`() {
+    fun `test byte-array binary search #2-d`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1561,7 +1566,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-e`() {
+    fun `test byte-array binary search #2-e`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1588,7 +1593,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-f`() {
+    fun `test byte-array binary search #2-f`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1615,7 +1620,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-g`() {
+    fun `test byte-array binary search #2-g`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1642,7 +1647,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-k`() {
+    fun `test byte-array binary search #2-k`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1669,7 +1674,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #2-l`() {
+    fun `test byte-array binary search #2-l`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15]
         // [ 49,  37,  51,  37,  53,  37,  54,  37,  55,  37,  56,  37,  57,  37,  49,  48]
         // [  1,   %,   3,   %,   5,   %,   6,   %,   7,   %,   8,   %,   9,   %,   1,   0]
@@ -1696,7 +1701,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #3-a`() {
+    fun `test byte-array binary search #3-a`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20, ...
         // [ 97, 100,  32,  97, 100, 105, 112, 105, 115,  99, 105, 110, 103,  32,  97, 108, 105, 113, 117,  97,  32, ...
         // [  a,   d,    ,   a,   d,   i,   p,   i,   s,   c,   i,   n,   g,    ,   a,   l,   i,   q,   u,   a,    , ...
@@ -1732,7 +1737,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #3-b`() {
+    fun `test byte-array binary search #3-b`() {
         // ... 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436]
         // ... 117, 116,  32, 117, 116,  32, 117, 116,  32, 118, 101, 108, 105, 116,  32, 118, 101, 110, 105,  97, 109,  32, 118, 111, 108, 117, 112, 116,  97, 116, 101]
         // ...   u,   t,    ,   u,   t,    ,   u,   t,    ,   v,   e,   l,   i,   t,    ,   v,   e,   n,   i,   a,   m,    ,   v,   o,   l,   u,   p,   t,   a,   t,   e]
@@ -1772,7 +1777,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #3-c`() {
+    fun `test byte-array binary search #3-c`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20, ...
         // [ 97, 100,  32,  97, 100, 105, 112, 105, 115,  99, 105, 110, 103,  32,  97, 108, 105, 113, 117,  97,  32, ...
         // [  a,   d,    ,   a,   d,   i,   p,   i,   s,   c,   i,   n,   g,    ,   a,   l,   i,   q,   u,   a,    , ...
@@ -1808,7 +1813,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #3-d`() {
+    fun `test byte-array binary search #3-d`() {
         // ...  415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436]
         // ...  118, 101, 108, 105, 116,  32, 118, 101, 110, 105,  97, 109,  32, 118, 111, 108, 117, 112, 116,  97, 116, 101]
         // ...    v,   e,   l,   i,   t,    ,   v,   e,   n,   i,   a,   m,    ,   v,   o,   l,   u,   p,   t,   a,   t,   e]
@@ -1845,7 +1850,7 @@ internal class ByteArrayUtilsTest {
 
 
     @Test
-    fun `test binary search #4-a`() {
+    fun `test byte-array binary search #4-a`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,   11,  12,  13,   14,  15,  16,   17,  18,  19,  20]
         // [ 96,  96,  96, -32, -80, -86, -32, -80, -80, -32, -79, -128, -32, -80, -107, -32, -79, -115, -32, -80, -73]
         // [  `,   `,   `,             ప,            ర,              ీ,               క,              ్,             ష]
@@ -1868,7 +1873,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #5-a`() {
+    fun `test byte-array binary search #5-a`() {
         // [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20]
         // [ 96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96, -61, -106, 108, -61, -89, 101, 107]
         // [  `,   `,   `,   `,   `,   `,   `,   `,   `,   `,   `,   `,   `,   `,         Ö,   l,        ç,   e,   k]
@@ -1890,7 +1895,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #6-a`() {
+    fun `test byte-array binary search #6-a`() {
         val txt = TEST_DATA_1.split(";").sorted().joinToString("\n")
         val charset = Charsets.UTF_8
         val source = txt.toByteArray(charset)
@@ -1908,7 +1913,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #6-b`() {
+    fun `test byte-array binary search #6-b`() {
         val txt = TEST_DATA_1.split(";").sorted().joinToString("\n")
         val charset = Charsets.UTF_16LE
         val source = txt.toByteArray(charset)
@@ -1926,7 +1931,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #6-c`() {
+    fun `test byte-array binary search #6-c`() {
         val data = TEST_DATA_1.split(";").distinct().sorted()
         val txt = data.joinToString("%")
         val charset = Charsets.UTF_8
@@ -1948,7 +1953,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #7-a`() {
+    fun `test byte-array binary search #7-a`() {
         val txt = "42,42"
         val charset = Charsets.UTF_8
         val source = txt.toByteArray(charset)
@@ -1982,7 +1987,7 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
-    fun `test binary search #8-a`() {
+    fun `test byte-array binary search #8-a`() {
         // 42 bytes per line, 515 bytes per text
         val txt = """
             433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A
@@ -2078,4 +2083,50 @@ internal class ByteArrayUtilsTest {
             ), res4.lines(charset)
         )
     }
+
+    @Test
+    fun `test byte-array binary search in real file #9-a`(@TempDir dir: Path) {
+        val charset = Charsets.UTF_8
+        val searchLine = "e1cc271b-5173-4a90-b66b-a0b558cc888d".toByteArray(charset)
+        val delimiter = "\n".toByteArray(charset)
+
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore(":")
+            val b = right.substringBefore(":")
+            a.compareTo(b)
+        }
+        val buffer: ByteBuffer = ByteBuffer.allocateDirect(BINARY_SEARCH_DEFAULT_BUFFER_SIZE_IN_BYTES)
+        val content =
+            MergeSortTest::class.java.getResourceAsStream("/sorted.csv")!!.bufferedReader(charset).readText()
+        val source = Files.createTempFile(dir, "xxx-binary-search-", ".xxx")
+        source.writeText(content, charset)
+
+        val searchArea = Pair(423668L, 434096L)
+        val startAreaInclusive = 0L
+        val endAreaExclusive = 434096L
+        source.use(StandardOpenOption.READ) {
+            it.position(searchArea.first)
+            buffer.position(0)
+            it.read(buffer)
+
+            val res = byteArrayBinarySearch(
+                source = buffer,
+                searchLine = searchLine,
+                sourceStartInclusive = 0,
+                sourceEndExclusive = buffer.position(),
+                delimiter = delimiter,
+                comparator = comparator.toByteArrayComparator(charset = charset, hashMapOf()),
+                includeLeftBound = searchArea.first == startAreaInclusive,
+                includeRightBound = searchArea.second == endAreaExclusive,
+            )
+            Assertions.assertEquals(8977, res.startInclusive)
+            Assertions.assertEquals(9064, res.endExclusive)
+            Assertions.assertEquals(
+                listOf("e1cc271b-5173-4a90-b66b-a0b558cc888d:2:9859", "e1cc271b-5173-4a90-b66b-a0b558cc888d:2:9860"),
+                res.lines(charset)
+            )
+        }
+
+    }
+
 }

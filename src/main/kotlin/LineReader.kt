@@ -202,6 +202,8 @@ fun SeekableByteChannel.syncReadByteLines(
 
 /**
  * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive] synchronously.
+ * The reader is [AutoCloseable], no further processing is possible after closing.
+ * Note that [source][SeekableByteChannel] will not be closed.
  */
 class SyncLineReader (
     source: SeekableByteChannel,
@@ -222,11 +224,6 @@ class SyncLineReader (
     delimiter = delimiter,
     maxLineLength = maxLineLength
 ) {
-
-    override fun close() {
-        end.set(true)
-    }
-
     override fun lines(): ResourceIterator<ByteArray> = iterator {
         if (direct) directRead {
             yield(it)
@@ -240,6 +237,8 @@ class SyncLineReader (
 
 /**
  * Reads file from the [endAreaPositionExclusive] position to the [startAreaPositionInclusive] asynchronously.
+ * The reader is [AutoCloseable] to release resources, no further processing is possible after closing.
+ * Note that [source][SeekableByteChannel] will not be closed.
  */
 class AsyncLineReader internal constructor(
     source: SeekableByteChannel,
