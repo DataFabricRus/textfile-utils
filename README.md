@@ -10,8 +10,34 @@ Contains following utils:
 - files merging
 - determining if a file is sorted
 - invert file content
-- sorting large text files with memory O(1) and no additional diskspace
-
-TODO:
-
+- sorting large text files with memory O(1) and no additional diskspace (optionally)
 - binary search in sorted file
+
+#### MergeSort:
+```kotlin
+fun sort(
+    source: Path,
+    target: Path,
+    comparator: Comparator<String>,
+    delimiter: String,
+    allocatedMemorySizeInBytes: Int,
+    controlDiskspace: Boolean,
+    charset: Charset,
+    coroutineContext: CoroutineContext,
+)
+```
+#### BinarySearch:
+```kotlin
+fun binarySearch(
+    source: Path,
+    searchLine: String,
+    buffer: ByteBuffer,
+    charset: Charset,
+    delimiter: String,
+    comparator: Comparator<String>,
+    maxOfLinesPerBlock: Int,
+    maxLineLengthInBytes: Int,
+): Pair<Long, List<String>>
+```
+
+### Apache License Version 2.0
