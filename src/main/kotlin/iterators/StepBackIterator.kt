@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles.iterators
+package cc.datafabric.textfileutils.iterators
 
 /**
  * An iterator that can return back one step.

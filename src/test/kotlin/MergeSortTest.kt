@@ -1,11 +1,11 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.files.bomSymbols
-import com.gitlab.sszuev.textfiles.files.contentEquals
-import com.gitlab.sszuev.textfiles.files.sort
-import com.gitlab.sszuev.textfiles.files.suspendSort
-import com.gitlab.sszuev.textfiles.files.suspendSplitAndSort
-import com.gitlab.sszuev.textfiles.iterators.defaultComparator
+import cc.datafabric.textfileutils.files.bomSymbols
+import cc.datafabric.textfileutils.files.contentEquals
+import cc.datafabric.textfileutils.files.sort
+import cc.datafabric.textfileutils.files.suspendSort
+import cc.datafabric.textfileutils.files.suspendSplitAndSort
+import cc.datafabric.textfileutils.iterators.defaultComparator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions

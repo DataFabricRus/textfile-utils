@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
 internal const val TEST_DATA_1 = "ການທົດສອບ;îmtîhan;tɛst;시험;tès;ፈተና;provë;" +
         "පරීක්ෂණය;prøve;ꯆꯥꯡꯌꯦꯡ;امتحان;փորձարկում;" +

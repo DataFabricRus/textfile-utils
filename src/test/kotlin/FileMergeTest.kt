@@ -1,7 +1,7 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.files.invert
-import com.gitlab.sszuev.textfiles.files.mergeFilesInverse
+import cc.datafabric.textfileutils.files.invert
+import cc.datafabric.textfileutils.files.mergeFilesInverse
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

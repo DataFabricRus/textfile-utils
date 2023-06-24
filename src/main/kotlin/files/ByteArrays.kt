@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles.files
+package cc.datafabric.textfileutils.files
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset

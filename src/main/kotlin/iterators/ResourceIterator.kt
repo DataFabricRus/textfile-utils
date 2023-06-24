@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles.iterators
+package cc.datafabric.textfileutils.iterators
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

@@ -1,8 +1,8 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.files.readLines
-import com.gitlab.sszuev.textfiles.files.use
-import com.gitlab.sszuev.textfiles.iterators.onEach
+import cc.datafabric.textfileutils.files.readLines
+import cc.datafabric.textfileutils.files.use
+import cc.datafabric.textfileutils.iterators.onEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

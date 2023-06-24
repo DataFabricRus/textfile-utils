@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.gitlab.sszuev.textfiles.iterators
+package cc.datafabric.textfileutils.iterators
 
 import java.util.SortedSet
 import java.util.TreeSet

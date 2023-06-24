@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm")
 }
 
-group = "com.gitlab.sszuev"
+group = "cc.datafabric"
 version = "1.0-SNAPSHOT"
 
 repositories {

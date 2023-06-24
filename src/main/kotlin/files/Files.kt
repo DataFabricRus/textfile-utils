@@ -1,9 +1,9 @@
-package com.gitlab.sszuev.textfiles.files
+package cc.datafabric.textfileutils.files
 
-import com.gitlab.sszuev.textfiles.iterators.all
-import com.gitlab.sszuev.textfiles.iterators.closeAll
-import com.gitlab.sszuev.textfiles.iterators.defaultComparator
-import com.gitlab.sszuev.textfiles.iterators.forEach
+import cc.datafabric.textfileutils.iterators.all
+import cc.datafabric.textfileutils.iterators.closeAll
+import cc.datafabric.textfileutils.iterators.defaultComparator
+import cc.datafabric.textfileutils.iterators.forEach
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel

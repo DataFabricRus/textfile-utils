@@ -1,11 +1,11 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.iterators.any
-import com.gitlab.sszuev.textfiles.iterators.asResourceIterator
-import com.gitlab.sszuev.textfiles.iterators.emptyResourceIterator
-import com.gitlab.sszuev.textfiles.iterators.forEach
-import com.gitlab.sszuev.textfiles.iterators.generateResourceIterator
-import com.gitlab.sszuev.textfiles.iterators.resourceIteratorOf
+import cc.datafabric.textfileutils.iterators.any
+import cc.datafabric.textfileutils.iterators.asResourceIterator
+import cc.datafabric.textfileutils.iterators.emptyResourceIterator
+import cc.datafabric.textfileutils.iterators.forEach
+import cc.datafabric.textfileutils.iterators.generateResourceIterator
+import cc.datafabric.textfileutils.iterators.resourceIteratorOf
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter

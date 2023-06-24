@@ -1,8 +1,8 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.iterators.mergeIterators
-import com.gitlab.sszuev.textfiles.iterators.mergeSequences
-import com.gitlab.sszuev.textfiles.iterators.mergeWith
+import cc.datafabric.textfileutils.iterators.mergeIterators
+import cc.datafabric.textfileutils.iterators.mergeSequences
+import cc.datafabric.textfileutils.iterators.mergeWith
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest

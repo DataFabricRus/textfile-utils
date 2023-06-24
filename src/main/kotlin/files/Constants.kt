@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles.files
+package cc.datafabric.textfileutils.files
 
 const val DEFAULT_BUFFER_SIZE_IN_BYTES = 8192
 const val MAX_LINE_LENGTH_IN_BYTES = 8912

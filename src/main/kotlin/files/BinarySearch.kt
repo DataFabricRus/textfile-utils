@@ -1,8 +1,8 @@
-package com.gitlab.sszuev.textfiles.files
+package cc.datafabric.textfileutils.files
 
-import com.gitlab.sszuev.textfiles.iterators.defaultComparator
-import com.gitlab.sszuev.textfiles.iterators.toByteArrayComparator
-import com.gitlab.sszuev.textfiles.iterators.toByteArrayLinearSearchComparator
+import cc.datafabric.textfileutils.iterators.defaultComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayLinearSearchComparator
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset

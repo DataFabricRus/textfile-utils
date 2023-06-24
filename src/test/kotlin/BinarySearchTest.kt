@@ -1,10 +1,10 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.files.binarySearch
-import com.gitlab.sszuev.textfiles.files.readLeftLines
-import com.gitlab.sszuev.textfiles.files.readRightLines
-import com.gitlab.sszuev.textfiles.files.use
-import com.gitlab.sszuev.textfiles.iterators.defaultByteArrayComparator
+import cc.datafabric.textfileutils.files.binarySearch
+import cc.datafabric.textfileutils.files.readLeftLines
+import cc.datafabric.textfileutils.files.readRightLines
+import cc.datafabric.textfileutils.files.use
+import cc.datafabric.textfileutils.iterators.defaultByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

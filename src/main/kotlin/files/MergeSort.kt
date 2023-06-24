@@ -1,8 +1,8 @@
-package com.gitlab.sszuev.textfiles.files
+package cc.datafabric.textfileutils.files
 
-import com.gitlab.sszuev.textfiles.iterators.ResourceIterator
-import com.gitlab.sszuev.textfiles.iterators.defaultComparator
-import com.gitlab.sszuev.textfiles.iterators.toByteArrayComparator
+import cc.datafabric.textfileutils.iterators.ResourceIterator
+import cc.datafabric.textfileutils.iterators.defaultComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

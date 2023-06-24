@@ -1,12 +1,12 @@
-package com.gitlab.sszuev.textfiles
+package cc.datafabric.textfileutils
 
-import com.gitlab.sszuev.textfiles.files.calcChunkSize
-import com.gitlab.sszuev.textfiles.files.insert
-import com.gitlab.sszuev.textfiles.files.insertLines
-import com.gitlab.sszuev.textfiles.files.invert
-import com.gitlab.sszuev.textfiles.files.isSorted
-import com.gitlab.sszuev.textfiles.files.sameFilePaths
-import com.gitlab.sszuev.textfiles.files.use
+import cc.datafabric.textfileutils.files.calcChunkSize
+import cc.datafabric.textfileutils.files.insert
+import cc.datafabric.textfileutils.files.insertLines
+import cc.datafabric.textfileutils.files.invert
+import cc.datafabric.textfileutils.files.isSorted
+import cc.datafabric.textfileutils.files.sameFilePaths
+import cc.datafabric.textfileutils.files.use
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
