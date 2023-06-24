@@ -1,5 +1,11 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.bomSymbols
+import com.gitlab.sszuev.textfiles.files.contentEquals
+import com.gitlab.sszuev.textfiles.files.sort
+import com.gitlab.sszuev.textfiles.files.suspendSort
+import com.gitlab.sszuev.textfiles.files.suspendSplitAndSort
+import com.gitlab.sszuev.textfiles.iterators.defaultComparator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions

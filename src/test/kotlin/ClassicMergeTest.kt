@@ -1,5 +1,8 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.iterators.mergeIterators
+import com.gitlab.sszuev.textfiles.iterators.mergeSequences
+import com.gitlab.sszuev.textfiles.iterators.mergeWith
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest

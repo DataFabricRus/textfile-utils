@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.iterators
 
 import java.util.SortedSet
 import java.util.TreeSet
@@ -224,7 +224,6 @@ inline fun <X> ResourceIterator<X>.any(predicate: (X) -> Boolean): Boolean = use
     return false
 }
 
-
 /**
  * Performs the given [action] for each remaining element until all elements
  * have been processed or the [action] throws an exception.
@@ -241,7 +240,6 @@ inline fun <X> ResourceIterator<X>.forEach(action: (X) -> Unit) {
  * Returns a resource-iterator which performs the given [action] on each element of the original resource-iterator as they pass through it.
  * The operation is _intermediate_ and _stateless_.
  */
-@SinceKotlin("1.1")
 fun <T> ResourceIterator<T>.onEach(action: (T) -> Unit): ResourceIterator<T> = map {
     action(it)
     it

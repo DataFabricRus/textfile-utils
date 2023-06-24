@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.files
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -129,10 +129,12 @@ fun byteArrayBinarySearch(
     while (low <= high) {
         if (low == high) {
             if (includeLeftBound && low == sourceStartInclusive) {
+                @Suppress("UnnecessaryVariable")
                 val n = sourceStartInclusive
                 return Lines(startInclusive = -1, endExclusive = n, lines = emptyList())
             }
             if (includeRightBound && high == sourceEndExclusive) {
+                @Suppress("UnnecessaryVariable")
                 val n = sourceEndExclusive
                 return Lines(startInclusive = n, endExclusive = -1, lines = emptyList())
             }

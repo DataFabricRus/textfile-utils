@@ -1,5 +1,11 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.iterators.any
+import com.gitlab.sszuev.textfiles.iterators.asResourceIterator
+import com.gitlab.sszuev.textfiles.iterators.emptyResourceIterator
+import com.gitlab.sszuev.textfiles.iterators.forEach
+import com.gitlab.sszuev.textfiles.iterators.generateResourceIterator
+import com.gitlab.sszuev.textfiles.iterators.resourceIteratorOf
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter

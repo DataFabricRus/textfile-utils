@@ -1,5 +1,17 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.BINARY_SEARCH_DEFAULT_BUFFER_SIZE_IN_BYTES
+import com.gitlab.sszuev.textfiles.files.Lines
+import com.gitlab.sszuev.textfiles.files.byteArrayBinarySearch
+import com.gitlab.sszuev.textfiles.files.bytes
+import com.gitlab.sszuev.textfiles.files.findLineBlock
+import com.gitlab.sszuev.textfiles.files.findLineNearPosition
+import com.gitlab.sszuev.textfiles.files.firstIndexOf
+import com.gitlab.sszuev.textfiles.files.lastIndexOf
+import com.gitlab.sszuev.textfiles.files.use
+import com.gitlab.sszuev.textfiles.iterators.byteArrayComparator
+import com.gitlab.sszuev.textfiles.iterators.defaultByteArrayComparator
+import com.gitlab.sszuev.textfiles.iterators.toByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

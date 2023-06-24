@@ -1,5 +1,8 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.readLines
+import com.gitlab.sszuev.textfiles.files.use
+import com.gitlab.sszuev.textfiles.iterators.onEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

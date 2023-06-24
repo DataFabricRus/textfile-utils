@@ -1,5 +1,7 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.invert
+import com.gitlab.sszuev.textfiles.files.mergeFilesInverse
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

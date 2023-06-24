@@ -1,5 +1,10 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.binarySearch
+import com.gitlab.sszuev.textfiles.files.readLeftLines
+import com.gitlab.sszuev.textfiles.files.readRightLines
+import com.gitlab.sszuev.textfiles.files.use
+import com.gitlab.sszuev.textfiles.iterators.defaultByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -199,7 +204,7 @@ internal class BinarySearchTest {
                 Assertions.assertEquals(expectedBlockSize, found.second.size)
                 found.second.forEach {
                     Assertions.assertTrue(it.length > searchString.length)
-                    Assertions.assertTrue(it.startsWith(searchString + ":"))
+                    Assertions.assertTrue(it.startsWith("$searchString:"))
                 }
             }
         }

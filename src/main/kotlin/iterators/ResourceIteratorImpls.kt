@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.iterators
 
 @Suppress("INAPPLICABLE_JVM_NAME")
 @OptIn(kotlin.experimental.ExperimentalTypeInference::class)

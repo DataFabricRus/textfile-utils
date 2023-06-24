@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.iterators
 
 import java.nio.charset.Charset
 

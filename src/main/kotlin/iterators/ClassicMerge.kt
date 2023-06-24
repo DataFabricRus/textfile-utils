@@ -1,4 +1,6 @@
-package com.gitlab.sszuev.textfiles
+@file:Suppress("unused")
+
+package com.gitlab.sszuev.textfiles.iterators
 
 
 /**

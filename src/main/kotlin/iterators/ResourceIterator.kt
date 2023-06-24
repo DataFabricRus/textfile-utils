@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.iterators
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -84,7 +84,6 @@ interface ResourceIterator<out X> : Iterator<X>, AutoCloseable {
             }
         }
     }
-
 
     /**
      * Returns the first element.

@@ -1,4 +1,4 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.iterators
 
 /**
  * An iterator that can return back one step.

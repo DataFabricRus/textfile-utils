@@ -1,5 +1,8 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.files
 
+import com.gitlab.sszuev.textfiles.iterators.ResourceIterator
+import com.gitlab.sszuev.textfiles.iterators.asResourceIterator
+import com.gitlab.sszuev.textfiles.iterators.emptyResourceIterator
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

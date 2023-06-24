@@ -1,5 +1,12 @@
 package com.gitlab.sszuev.textfiles
 
+import com.gitlab.sszuev.textfiles.files.calcChunkSize
+import com.gitlab.sszuev.textfiles.files.insert
+import com.gitlab.sszuev.textfiles.files.insertLines
+import com.gitlab.sszuev.textfiles.files.invert
+import com.gitlab.sszuev.textfiles.files.isSorted
+import com.gitlab.sszuev.textfiles.files.sameFilePaths
+import com.gitlab.sszuev.textfiles.files.use
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

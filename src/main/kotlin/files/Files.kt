@@ -1,5 +1,9 @@
-package com.gitlab.sszuev.textfiles
+package com.gitlab.sszuev.textfiles.files
 
+import com.gitlab.sszuev.textfiles.iterators.all
+import com.gitlab.sszuev.textfiles.iterators.closeAll
+import com.gitlab.sszuev.textfiles.iterators.defaultComparator
+import com.gitlab.sszuev.textfiles.iterators.forEach
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
