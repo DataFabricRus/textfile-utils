@@ -15,6 +15,34 @@ import kotlin.io.path.fileSize
 import kotlin.io.path.inputStream
 
 /**
+ * Inserts the given [lines] before the specified [position] in assumption
+ * that [target] file contains lines separated by [delimiter] and
+ * the given [position] is a first byte of some line (or the size of the file to insert at its end).
+ * @param target [Path]
+ * @param lines [List]<[String]>
+ * @param position
+ * @param delimiter
+ * @param charset [Charset]
+ * @param buffer [ByteBuffer]
+ */
+fun insertLines(
+    target: Path,
+    lines: List<String>,
+    position: Long = 0,
+    delimiter: String,
+    charset: Charset,
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
+) = target.use {
+    val block = if (position == it.size()) {
+        lines.joinToString(delimiter, delimiter, "")
+    } else {
+        lines.joinToString(delimiter, "", delimiter)
+    }
+    val data = block.toByteArray(charset)
+    it.insert(data, position, buffer)
+}
+
+/**
  * Inserts the given [data] at the [specified position][beforePosition] of channel.
  *
  * @param [data][ByteArray] to write
@@ -51,9 +79,9 @@ fun SeekableByteChannel.insert(
         write(buffer)
         return
     }
-    var index = size() - 1
+    var index = size()
     while (index > beforePosition) {
-        var readPosition = index - buffer.limit() + 1
+        var readPosition = index - buffer.limit()
         if (readPosition < beforePosition) {
             val newBufferLimit = (buffer.capacity() + readPosition - beforePosition).toInt()
             buffer.limit(newBufferLimit)
@@ -165,7 +193,7 @@ fun contentEquals(left: Path, right: Path): Boolean {
         return false
     }
     left.inputStream().buffered().use { leftStream ->
-        right.inputStream().buffered().use {  rightStream ->
+        right.inputStream().buffered().use { rightStream ->
             val leftBytes = leftStream.iterator()
             val rightBytes = rightStream.iterator()
             while (leftBytes.hasNext()) {
