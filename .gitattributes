@@ -1,0 +1,3 @@
+* text=auto
+src/test/resources/shuffled.csv text eol=lf
+src/test/resources/sorted.csv text eol=lf
