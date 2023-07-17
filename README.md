@@ -39,9 +39,8 @@ fun binarySearch(
     maxLineLengthInBytes: Int,
 ): Pair<Long, List<String>>
 ```
-#### Usage:
 
-Available via [jitpack](https://jitpack.io/#DataFabricRus/textfile-utils):
+#### Available via [jitpack](https://jitpack.io/#DataFabricRus/textfile-utils):
 ```kotlin
 allprojects {
     repositories {
