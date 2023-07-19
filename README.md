@@ -3,6 +3,12 @@
 A simple JVM library for working with text files of any size.
 The library is based on Java NIO (i.e. `java.nio.channels.SeekableByteChannel`) and Kotlin Coroutines.
 
+The library allows to sort an arbitrary file that can be divided into byte blocks by some delimiter.
+After sorting, these blocks can be found using a binary search algorithm.
+The library takes care of memory consumption, performance and diskspace, so it is suitable for environments with limited resources.
+Large CSV-files is one example where this library could be used.
+The library is lightweight, so it can be used if there is no possibility to use heavy frameworks or databases.   
+
 Contains following utils:
 
 - insertion at an arbitrary position in the file
