@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cc.datafabric"
-version = "1.1-SNAPSHOT"
+version = "1.1-SNAPSHOT-kotlin-1.7.0"
 
 repositories {
     mavenCentral()
@@ -73,5 +73,7 @@ tasks.getByName("signMavenPublication") {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
