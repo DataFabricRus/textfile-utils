@@ -299,6 +299,17 @@ internal class MergeSortTest {
         Assertions.assertTrue(contentEquals(expected, target))
     }
 
+    @Test
+    fun `test sort n-triples file with windows new-line symbols`(@TempDir dir: Path) {
+        testDefaultSortResourceFile(dir, "/random-win.nt")
+    }
+
+    @Test
+    fun `test sort n-triples file with linux new-line symbols`(@TempDir dir: Path) {
+        testDefaultSortResourceFile(dir, "/random-lin.nt")
+    }
+
+    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun testSortRelativelySmallFile(
         dir: Path,
         charset: Charset,
@@ -352,6 +363,7 @@ internal class MergeSortTest {
         Assertions.assertEquals(fileSize, target.fileSize())
     }
 
+    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun testSplitAndSort(
         dir: Path,
         content: List<String>,
@@ -386,6 +398,25 @@ internal class MergeSortTest {
         }
 
         Assertions.assertFalse(source.exists())
+    }
+
+    fun testDefaultSortResourceFile(dir: Path, resource: String) {
+        val charset = Charsets.UTF_8
+        val givenContent =
+            MergeSortTest::class.java.getResourceAsStream(resource)!!.bufferedReader(charset).readText()
+        val expected = givenContent.split("\n").sorted()
+
+        val source = Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        source.writeText(givenContent, charset)
+        val target = Paths.get("$source.nt")
+
+        sort(
+            source = source,
+            target = target,
+        )
+
+        val actual = target.readText(charset).split("\n")
+        Assertions.assertEquals(expected, actual)
     }
 
 }

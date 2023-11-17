@@ -1,3 +1,5 @@
 * text=auto
-src/test/resources/shuffled.csv text eol=lf
-src/test/resources/sorted.csv text eol=lf
+src/test/resources/shuffled.csv -text
+src/test/resources/sorted.csv -text
+src/test/resources/random-lin.csv -text
+src/test/resources/random-win.csv -text

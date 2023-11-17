@@ -188,7 +188,9 @@ private fun SeekableByteChannel.writeData(
     fromIndex: Int,
     buffer: ByteBuffer,
 ): Int {
-    require(data.isNotEmpty())
+    if (data.isEmpty()) {
+        return -1 // empty line
+    }
     val length = min(data.size - fromIndex, buffer.capacity() - buffer.position())
     buffer.put(data, fromIndex, length)
     val nextPosition = buffer.position()
