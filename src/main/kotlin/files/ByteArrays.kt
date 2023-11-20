@@ -98,10 +98,10 @@ fun String.bytes(charset: Charset): ByteArray {
  * @param comparator [Comparator]
  * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
  * otherwise [delimiter] is required before first line;
- * in other word the [source] is treated as if there is a [delimiter] before the left border
+ * in other words the [source] is treated as if there is a [delimiter] before the left border
  * @param includeRightBound if `true` the last line in the range can have end index equal `[sourceEndExclusive] - 1`,
  * otherwise [delimiter] is required after first line;
- * in other word the [source] is treated as if there is a [delimiter] after the right border
+ * in other words the [source] is treated as if there is a [delimiter] after the right border
  * @return [Lines]:
  * - `Lines(-1, -1, emptyList())` - cannot find in the [source]; unexpected. on a sorted Array must not happen.
  * - `Lines(-1, N, emptyList())` - not found but definitely less than first `Line` in the [source],
@@ -109,7 +109,7 @@ fun String.bytes(charset: Charset): ByteArray {
  * - `Lines(N, -1, emptyList())` - not found but definitely greater than last `Line` in the [source],
  * where `N` is the right position (in the [source]) of the right `Line` (exclusive)
  * - `Lines(N, N, emptyList())` - not found but can be inserted at the position `N` (in the [source]) with shifting [source] to the right,
- * this is the start position of the next (right) `Line`, note that the inserted data should contain delimiter bytes at the beginning
+ * this is the start position of the next (right) `Lines` block, note that the inserted data should contain delimiter bytes at the beginning
  * - `Lines(N, M, listOf(ByteArray ..))` - found, `N` (inclusive) and `M` (exclusive) positions (in the [source]) of block
  */
 fun byteArrayBinarySearch(
@@ -129,16 +129,12 @@ fun byteArrayBinarySearch(
     while (low <= high) {
         if (low == high) {
             if (includeLeftBound && low == sourceStartInclusive) {
-                @Suppress("UnnecessaryVariable")
-                val n = sourceStartInclusive
-                return Lines(startInclusive = -1, endExclusive = n, lines = emptyList())
+                return Lines(startInclusive = -1, endExclusive = sourceStartInclusive, lines = emptyList())
             }
             if (includeRightBound && high == sourceEndExclusive) {
-                @Suppress("UnnecessaryVariable")
-                val n = sourceEndExclusive
-                return Lines(startInclusive = n, endExclusive = -1, lines = emptyList())
+                return Lines(startInclusive = sourceEndExclusive, endExclusive = -1, lines = emptyList())
             }
-            throw IllegalStateException()
+            throw IllegalStateException("please report a bug")
         }
         val middle = low + high ushr 1
         val current = findLineNearPosition(
@@ -186,7 +182,7 @@ fun byteArrayBinarySearch(
             )
         }
     }
-    throw IllegalStateException("must be unreachable")
+    throw IllegalStateException("must be unreachable; please report a bug")
 }
 
 /**

@@ -7,13 +7,17 @@ import cc.datafabric.textfileutils.files.use
 import cc.datafabric.textfileutils.iterators.defaultByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.useLines
 import kotlin.io.path.writeText
 
+@Timeout(value = 2, unit = TimeUnit.MINUTES)
 internal class BinarySearchTest {
 
     @Test
@@ -208,7 +212,53 @@ internal class BinarySearchTest {
                 }
             }
         }
+    }
 
+    @Test
+    fun `test binary-search sorted small file with empty lines at the end`(@TempDir dir: Path) {
+        val charset = Charsets.UTF_8
+        val content = """
+            #_ffdf27f2-9acf-4a39-9c9d-66aa77b37ba3|A
+            #_ffdf5659-17d3-4de2-9397-7fbef06ed785|B
+            #_ffe4adb7-3e1c-435c-ab1f-11d58b78e227|C
+            #_ffe4d7f7-fe0f-4788-931e-99c09a588a5c|D
+            #_fffa83e1-6dd7-41c7-8878-415dd02068ba|E
+            
+            
+        """.trimIndent()
+
+        val source = Files.createTempFile(dir, "xxx-binary-search-", ".xxx")
+        source.writeText(content, charset)
+
+        val fileChannel = Files.newByteChannel(source, StandardOpenOption.READ)
+        fileChannel.use { channel ->
+
+            val (n1, lines1) = channel.binarySearch(
+                searchLine = "#_ffdf5659-17d3-4de2-9397-7fbef06ed785".toByteArray(Charsets.UTF_8),
+                delimiter = "\n".toByteArray(Charsets.UTF_8),
+                comparator = { leftLine, rightLine ->
+                    leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+                }
+            )
+
+            println("$n1::$lines1")
+            Assertions.assertEquals(41, n1)
+            Assertions.assertEquals(
+                listOf("#_ffdf5659-17d3-4de2-9397-7fbef06ed785|B"),
+                lines1.map { it.toString(charset) }
+            )
+
+            val (n2, lines2) =
+                channel.binarySearch(
+                    searchLine = "".toByteArray(Charsets.UTF_8),
+                    delimiter = "\n".toByteArray(Charsets.UTF_8),
+                    comparator = { leftLine, rightLine ->
+                        leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+                    }
+                )
+            Assertions.assertEquals(1, n2)
+            Assertions.assertTrue(lines2.isEmpty())
+        }
     }
 
     @Test
@@ -278,5 +328,33 @@ internal class BinarySearchTest {
         Assertions.assertEquals(
             listOf("**", "**", "**", "**", "**", "**", "**"),
             res.map { it.toString(Charsets.UTF_8) })
+    }
+
+    @Test
+    fun `test binary-search not found`(@TempDir dir: Path) {
+        val content = """
+            #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|xxx
+            #_000a0e22-5e84-40c8-9fb2-ceec4fd1f187|vvv
+            #_0019785d-df4a-4e21-a4c5-1569b9f41cb7|bbb
+            #_001e9f01-ed5d-44e2-ae55-4193e64de640|mmm
+            #_00225668-5bfe-480a-b09a-8afec80f59a4|aaa
+        """.trimIndent()
+
+        val source = Files.createTempFile("testBinarySearchSingleLine-", ".csv-like")
+        source.writeText(content)
+
+        val fileChannel = Files.newByteChannel(source, StandardOpenOption.READ)
+        val searchLine = "XXX"
+        fileChannel.use { channel ->
+            val (n, lines) = channel.binarySearch(
+                searchLine = searchLine.toByteArray(Charsets.UTF_8),
+                delimiter = "\n".toByteArray(Charsets.UTF_8),
+                comparator = { leftLine, rightLine ->
+                    leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+                }
+            )
+            Assertions.assertTrue(lines.isEmpty())
+            Assertions.assertEquals(215, n)
+        }
     }
 }

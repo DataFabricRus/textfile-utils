@@ -309,6 +309,43 @@ internal class MergeSortTest {
         testDefaultSortResourceFile(dir, "/random-lin.nt")
     }
 
+    @Test
+    fun `test sort small csv-file with empty lines at the end`(@TempDir dir: Path) {
+        val content = """
+            #_ffdf27f2-9acf-4a39-9c9d-66aa77b37ba3|A
+            #_ffdf5659-17d3-4de2-9397-7fbef06ed785|B
+            #_ffe4adb7-3e1c-435c-ab1f-11d58b78e227|C
+            #_ffe4d7f7-fe0f-4788-931e-99c09a588a5c|D
+            #_fffa83e1-6dd7-41c7-8878-415dd02068ba|E
+            
+            
+        """.trimIndent()
+        val source = Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+        source.writeText(content, Charsets.UTF_8)
+
+        sort(
+            source = source,
+            target = target,
+            charset = Charsets.UTF_8,
+            delimiter = "\n",
+            comparator = { leftLine, rightLine ->
+                leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+            }
+        )
+        val actual = target.readText(Charsets.UTF_8)
+        val expected = """
+            
+
+            #_ffdf27f2-9acf-4a39-9c9d-66aa77b37ba3|A
+            #_ffdf5659-17d3-4de2-9397-7fbef06ed785|B
+            #_ffe4adb7-3e1c-435c-ab1f-11d58b78e227|C
+            #_ffe4d7f7-fe0f-4788-931e-99c09a588a5c|D
+            #_fffa83e1-6dd7-41c7-8878-415dd02068ba|E
+        """.trimIndent()
+        Assertions.assertEquals(expected, actual)
+    }
+
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun testSortRelativelySmallFile(
         dir: Path,
