@@ -93,7 +93,7 @@ fun SeekableByteChannel.binarySearch(
     require(maxLineLengthInBytes > 1)
     require(maxOfLinesPerBlock >= 1)
     require(buffer.capacity() >= maxLineLengthInBytes * 2) {
-        "buffer${buffer.capacity()} must be greater than 2 * max-line-length=$maxLineLengthInBytes"
+        "buffer ${buffer.capacity()} must be greater than 2 * max-line-length = ${maxLineLengthInBytes * 2}"
     }
     var foundLines: Lines? = null
     var absoluteLowInclusive = startAreaInclusive
@@ -166,7 +166,7 @@ private fun absoluteBounds(
     // size = buffer * 2
     val low = max(startAreaInclusive, (2 * middle - buffer.capacity()) / 2)
     val high = min(endAreaExclusive, (2 * middle + buffer.capacity()) / 2)
-    check(low <= high) { "low=$low, high=$high" }
+    check(low <= high) { "low=$low > high=$high; please report bug" }
     if (low == high) {
         return low to low + 1
     }
