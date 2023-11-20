@@ -15,7 +15,9 @@ import kotlin.math.min
  * Searches the [source] file for strings that match the specified [search-string][searchLine]
  * using the binary search algorithm.
  * The data in the source must be sorted, otherwise the result is unpredictable.
- *
+ * **Note!
+ * The lexicographically sorted content of a file may not be considered sorted if,
+ * for example, there is an empty line at the end of the file.**
  * @param source [Path] file
  * @param searchLine [String] - pattern to search
  * @param delimiter [ByteArray] default `\n`
@@ -56,6 +58,9 @@ fun binarySearch(
  * Searches the source channel for strings that match the specified [search-string][searchLine]
  * using the binary search algorithm.
  * The data in the channel must be sorted, otherwise the result is unpredictable.
+ * **Note!
+ * The lexicographically sorted content of a file may not be considered sorted if,
+ * for example, there is an empty line at the end of the file.**
  * @param searchLine [ByteArray] pattern
  * @param startAreaInclusive [Long] the starting position in the file, default `0`
  * @param endAreaExclusive [Long] the end position in the file, default [SeekableByteChannel.size]
@@ -64,10 +69,11 @@ fun binarySearch(
  * note that due to implementation restriction [buffer] size must be greater or equal than [maxLineLengthInBytes]
  * @param charset [Charset] default `UTF-8`
  * @param comparator [Comparator]<[String]> to compare lines
- * @param maxLineLengthInBytes [Int] line restriction, to avoid memory lack e.g. when there is no delimiter , default = `8192`
+ * @param maxLineLengthInBytes [Int] line restriction, to avoid memory lack e.g., when there is no delimiter, default = `8192`
  * @param maxOfLinesPerBlock [Int] maximum number of lines in a paragraph
  * @return [Pair]<[Long], [List]<[ByteArray]>> - the position of bytes in the source channel to the block of found strings;
- * if nothing is found, then the first member of the pair is the position of the next existing string
+ * if nothing is found, then the first member of the pair is the position of the next existing string;
+ * to insert new line at this position append delimiter to beginning of inserted string, if the position is not 0
  */
 fun SeekableByteChannel.binarySearch(
     searchLine: ByteArray,
@@ -92,12 +98,21 @@ fun SeekableByteChannel.binarySearch(
     var foundLines: Lines? = null
     var absoluteLowInclusive = startAreaInclusive
     var absoluteHighExclusive = endAreaExclusive
+    var prevSearchArea: Pair<Long, Long>? = null
     buffer.clear()
     while (Lines.NULL != foundLines) {
         val searchArea = absoluteBounds(absoluteLowInclusive, absoluteHighExclusive, buffer)
+        if (absoluteLowInclusive to absoluteHighExclusive == prevSearchArea) {
+            // Cycle. Is the file sorted?"
+            return searchArea.second to emptyList()
+        }
+        prevSearchArea = absoluteLowInclusive to absoluteHighExclusive
         this.position(searchArea.first)
         buffer.position(0)
         this.read(buffer)
+        if (buffer.position() == 0) {
+            return searchArea.second to emptyList()
+        }
 
         foundLines = byteArrayBinarySearch(
             source = buffer,
@@ -139,7 +154,7 @@ fun SeekableByteChannel.binarySearch(
             maxLineLengthInBytes = maxLineLengthInBytes
         )
     }
-    throw IllegalStateException("must be unreachable")
+    throw IllegalStateException("must be unreachable; please report a bug")
 }
 
 private fun absoluteBounds(
@@ -228,7 +243,7 @@ internal fun SeekableByteChannel.readLeftLines(
 }
 
 internal fun SeekableByteChannel.readRightLines(
-    readPosition: Long, // end (exclusive) position of previous found line on the right
+    readPosition: Long, // end (exclusive) position of the previous found line on the right
     buffer: ByteBuffer,
     searchLine: ByteArray,
     delimiter: ByteArray,
