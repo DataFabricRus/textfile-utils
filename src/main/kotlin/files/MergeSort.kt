@@ -52,7 +52,7 @@ import kotlin.math.max
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
  * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace, but the whole process will take will require more time
+ * this allows saving diskspace, but the whole process will take will require more time
  * @param [charset][Charset]
  * @param [coroutineContext][CoroutineContext]
  */
@@ -127,8 +127,8 @@ suspend fun suspendSort(
     val bomSymbols = charset.bomSymbols()
     val delimiterBytes = delimiter.bytes(charset)
 
-    if (source.fileSize() <= allocatedMemorySizeInBytes) { // small file, memory
-        val writeBuffer = ByteBuffer.allocateDirect(allocatedMemorySizeInBytes / 2)
+    if (source.fileSize() <= 5 * allocatedMemorySizeInBytes / 2) { // small file, memory
+        val writeBuffer = ByteBuffer.allocateDirect(source.fileSize().toInt())
         val readBuffer = ByteBuffer.allocateDirect(allocatedMemorySizeInBytes / 2)
         val content = source.use { input ->
             input.readLinesBytes(
@@ -256,7 +256,7 @@ internal suspend fun suspendSplitAndSort(
                     lines.clear()
                     writers.add(
                         coroutineScope.writeJob(
-                            content = linesSnapshot.sort(comparator.toByteArrayComparator(charset, hashMapOf()) ),
+                            content = linesSnapshot.sort(comparator.toByteArrayComparator(charset, hashMapOf())),
                             target = res.put(source + ".${fileCounter++}.part"),
                             delimiterBytes = delimiterBytes,
                             bomSymbols = bomSymbols,

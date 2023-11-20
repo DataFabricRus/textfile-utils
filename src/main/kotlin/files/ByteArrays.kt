@@ -187,7 +187,7 @@ fun byteArrayBinarySearch(
 
 /**
  * Finds the boundaries of the block containing the specified string.
- * E.g. for string `xx:13`, source `hh;ee;c;d;xx;xx;w;w;qq` and delimiter `;` the found block will be `xx:[10,15)`.
+ * E.g., for string `xx:13`, source `hh;ee;c;d;xx;xx;w;w;qq` and delimiter `;` the found block will be `xx:[10,15)`.
  * @param foundLine [ByteArray]
  * @param source [ByteBuffer]
  * @param sourceStartInclusive [Int]
@@ -196,10 +196,10 @@ fun byteArrayBinarySearch(
  * @param comparator [Comparator] to select adjacent lines which equal to the given [foundLine] ((compareTo = 0))
  * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
  * otherwise [delimiter] is required before first line;
- * in other word the [source] is treated as if there is a [delimiter] before the left border
+ * in other words the [source] is treated as if there is a [delimiter] before the left border
  * @param includeRightBound if `true` the last line in the range can have end index equal `[sourceEndExclusive] - 1`,
  * otherwise [delimiter] is required after first line;
- * in other word the [source] is treated as if there is a [delimiter] after the right border
+ * in other words the [source] is treated as if there is a [delimiter] after the right border
  * @return [Lines]
  */
 internal fun findLineBlock(

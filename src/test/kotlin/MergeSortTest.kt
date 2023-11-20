@@ -346,6 +346,53 @@ internal class MergeSortTest {
         Assertions.assertEquals(expected, actual)
     }
 
+    @Test
+    fun `test sort small csv-file`(@TempDir dir: Path) {
+        val content = """
+            #_ffdf27f2-9acf-4a39-9c9d-66aa77b37ba3|A
+            #_ffdf5659-17d3-4de2-9397-7fbef06ed785|B
+            #_ffe4adb7-3e1c-435c-ab1f-11d58b78e227|C
+            #_008a7b89-bc8d-4a93-8e0f-4307f018d6f7|D
+            #_008ee688-e4f7-4be7-afa0-5d25c309d7aa|E
+            #_009e4646-00ef-4646-a5d6-02fedec775b9|F
+            #_ffe4d7f7-fe0f-4788-931e-99c09a588a5c|G
+            #_fffa83e1-6dd7-41c7-8878-415dd02068ba|K
+            #_00a7702b-f0a4-4e9b-8e8c-9513e4e1bd57|L
+            #_00b663d6-ca2b-4b33-b952-5114e1cb63de|M
+            #_00b78ab6-296a-4270-a2f2-b3394b5de8d7|N
+        """.trimIndent()
+        val source = Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+        source.writeText(content, Charsets.UTF_8)
+
+        sort(
+            source = source,
+            target = target,
+            charset = Charsets.UTF_8,
+            delimiter = "\n",
+            comparator = { leftLine, rightLine ->
+                leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+            },
+            allocatedMemorySizeInBytes = source.fileSize().toInt(),
+        )
+        val actual = target.readText(Charsets.UTF_8)
+        println(actual)
+        val expected = """
+            #_008a7b89-bc8d-4a93-8e0f-4307f018d6f7|D
+            #_008ee688-e4f7-4be7-afa0-5d25c309d7aa|E
+            #_009e4646-00ef-4646-a5d6-02fedec775b9|F
+            #_00a7702b-f0a4-4e9b-8e8c-9513e4e1bd57|L
+            #_00b663d6-ca2b-4b33-b952-5114e1cb63de|M
+            #_00b78ab6-296a-4270-a2f2-b3394b5de8d7|N
+            #_ffdf27f2-9acf-4a39-9c9d-66aa77b37ba3|A
+            #_ffdf5659-17d3-4de2-9397-7fbef06ed785|B
+            #_ffe4adb7-3e1c-435c-ab1f-11d58b78e227|C
+            #_ffe4d7f7-fe0f-4788-931e-99c09a588a5c|G
+            #_fffa83e1-6dd7-41c7-8878-415dd02068ba|K
+        """.trimIndent()
+        Assertions.assertEquals(expected, actual)
+    }
+
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun testSortRelativelySmallFile(
         dir: Path,
