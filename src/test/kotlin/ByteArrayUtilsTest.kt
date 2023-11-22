@@ -24,7 +24,7 @@ import kotlin.io.path.writeText
 internal class ByteArrayUtilsTest {
 
     @Test
-    fun `test left-index-of`() {
+    fun `test left-index-of #1`() {
         val source = ByteBuffer.wrap(byteArrayOf(42, 2, 4, 24, 2, 4, 42))
         Assertions.assertEquals(
             4,
@@ -85,6 +85,27 @@ internal class ByteArrayUtilsTest {
     }
 
     @Test
+    fun `test left-index-of #2`() {
+        val source = ByteBuffer.wrap(
+            "-4193e64de640|b8248fce-c79c-4aea-96cb-2880e13b36e9\n#_00225668-5bfe-480a-b09a-8afec80f59a4|ce41ce78-e"
+                .toByteArray(Charsets.UTF_8)
+        )
+        val find = "\n".toByteArray(Charsets.UTF_8)
+
+        val res = source.lastIndexOf(0, source.limit(), find)
+        Assertions.assertEquals(50, res)
+    }
+
+    @Test
+    fun `test left-index-of #3`() {
+        val source = ByteBuffer.wrap(byteArrayOf(42, 42, 42, 42))
+        val find = byteArrayOf(42, 42, 42, 42)
+
+        val res = source.lastIndexOf(0, source.limit(), find)
+        Assertions.assertEquals(0, res)
+    }
+
+    @Test
     fun `test right-index-of`() {
         val source = ByteBuffer.wrap(byteArrayOf(4, 42, 2, 4, 42, 4))
         Assertions.assertEquals(
@@ -140,8 +161,8 @@ internal class ByteArrayUtilsTest {
             position = 5,
             delimiter = delimiter,
         )
-        Assertions.assertEquals(4, res?.second)
-        Assertions.assertEquals("ii", res?.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(4, res.second)
+        Assertions.assertEquals("ii", res.first?.toString(Charsets.UTF_8))
     }
 
     @Test
@@ -162,8 +183,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertEquals(" ii ", res?.first?.toString(charset))
-        Assertions.assertEquals(3, res?.second)
+        Assertions.assertEquals(" ii ", res.first?.toString(charset))
+        Assertions.assertEquals(3, res.second)
     }
 
     @Test
@@ -184,8 +205,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        Assertions.assertEquals(" && ii && ", res?.first?.toString(charset))
-        Assertions.assertEquals(0, res?.second)
+        Assertions.assertEquals(" && ii && ", res.first?.toString(charset))
+        Assertions.assertEquals(0, res.second)
     }
 
     @Test
@@ -203,7 +224,7 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertNull(res)
+        Assertions.assertNull(res.first)
     }
 
     @Test
@@ -221,8 +242,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = false,
         )
-        Assertions.assertEquals("xxx", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(0, res?.second)
+        Assertions.assertEquals("xxx", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(0, res.second)
     }
 
     @Test
@@ -240,8 +261,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertEquals("www", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(19, res?.second)
+        Assertions.assertEquals("www", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(19, res.second)
     }
 
     @Test
@@ -262,8 +283,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = true,
         )
-        Assertions.assertEquals("jjj", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(1, res?.second)
+        Assertions.assertEquals("jjj", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(1, res.second)
     }
 
     @Test
@@ -281,8 +302,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        Assertions.assertEquals("vvvv", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(38, res?.second)
+        Assertions.assertEquals("vvvv", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(38, res.second)
     }
 
     @Test
@@ -304,7 +325,7 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = true,
         )
-        Assertions.assertEquals("ii,424242,mmm", res?.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals("ii,424242,mmm", res.first?.toString(Charsets.UTF_8))
     }
 
     @Test
@@ -322,7 +343,7 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertNull(res)
+        Assertions.assertNull(res.first)
     }
 
     @Test
@@ -343,8 +364,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        Assertions.assertEquals("q", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(14, res?.second)
+        Assertions.assertEquals("q", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(14, res.second)
     }
 
     @Test
@@ -362,8 +383,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertEquals("jjj", res?.first?.toString(Charsets.UTF_8))
-        Assertions.assertEquals(1, res?.second)
+        Assertions.assertEquals("jjj", res.first?.toString(Charsets.UTF_8))
+        Assertions.assertEquals(1, res.second)
     }
 
     @Test
@@ -380,8 +401,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        Assertions.assertArrayEquals(source, res?.first)
-        Assertions.assertEquals(0, res?.second)
+        Assertions.assertArrayEquals(source, res.first)
+        Assertions.assertEquals(0, res.second)
     }
 
     @Test
@@ -400,8 +421,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertEquals("сынақ", res1?.first?.toString(charset))
-        Assertions.assertEquals(370, res1?.second)
+        Assertions.assertEquals("сынақ", res1.first?.toString(charset))
+        Assertions.assertEquals(370, res1.second)
     }
 
     @Test
@@ -420,8 +441,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertEquals("", res?.first?.toString(charset))
-        Assertions.assertEquals(716, res?.second)
+        Assertions.assertEquals("", res.first?.toString(charset))
+        Assertions.assertEquals(716, res.second)
     }
 
     @Test
@@ -440,8 +461,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res3?.first?.toString(charset)
-        val actualPosition = res3?.second
+        val actualString = res3.first?.toString(charset)
+        val actualPosition = res3.second
         Assertions.assertEquals("tɛst", actualString) { "Wrong line near 42: $actualString" }
         Assertions.assertEquals(38, actualPosition)
     }
@@ -461,8 +482,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("تاقیکردنەوە", actualString) { "Wrong line near 424: $actualString" }
         Assertions.assertEquals(422, actualPosition)
     }
@@ -483,8 +504,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("އިމްތިޙާން", actualString) { "Wrong line near 542: $actualString" }
         Assertions.assertEquals(537, actualPosition)
     }
@@ -507,8 +528,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("X", actualString) { "Wrong line near 14: $actualString" }
         Assertions.assertEquals(13, actualPosition)
     }
@@ -531,8 +552,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("DATA", actualString) { "Wrong line near 12: $actualString" }
         Assertions.assertEquals(8, actualPosition)
     }
@@ -555,8 +576,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 7: $actualString" }
         Assertions.assertEquals(7, actualPosition)
     }
@@ -579,8 +600,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = true,
             includeRightBound = true,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 15: $actualString" }
         Assertions.assertEquals(15, actualPosition)
     }
@@ -603,8 +624,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res?.first?.toString(charset)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(charset)
+        val actualPosition = res.second
         Assertions.assertEquals("X", actualString) { "Wrong line near 0: $actualString" }
         Assertions.assertEquals(1, actualPosition)
     }
@@ -624,8 +645,8 @@ internal class ByteArrayUtilsTest {
             sourceEndExclusive = 2,
             delimiter = delimiter,
         )
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 1: $actualString" }
         Assertions.assertEquals(1, actualPosition)
     }
@@ -647,8 +668,8 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 1: $actualString" }
         Assertions.assertEquals(1, actualPosition)
     }
@@ -670,7 +691,7 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = true,
         )
-        Assertions.assertNull(res) { "found: ${res?.second} :: '${res?.first?.toString(Charsets.UTF_8)}'" }
+        Assertions.assertNull(res.first) { "found: ${res.second} :: '${res.first?.toString(Charsets.UTF_8)}'" }
     }
 
     @Test
@@ -688,8 +709,8 @@ internal class ByteArrayUtilsTest {
             sourceEndExclusive = 2,
             delimiter = delimiter,
         )
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 1: $actualString" }
         Assertions.assertEquals(1, actualPosition)
     }
@@ -711,7 +732,7 @@ internal class ByteArrayUtilsTest {
             includeLeftBound = false,
             includeRightBound = false,
         )
-        Assertions.assertNull(res)
+        Assertions.assertNull(res.first)
     }
 
     @Test
@@ -734,8 +755,8 @@ internal class ByteArrayUtilsTest {
             includeRightBound = false,
         )
 
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("a", actualString) { "Wrong line near 0: $actualString" }
         Assertions.assertEquals(0, actualPosition)
     }
@@ -760,8 +781,8 @@ internal class ByteArrayUtilsTest {
             includeRightBound = true,
         )
 
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("", actualString) { "Wrong line near 0: $actualString" }
         Assertions.assertEquals(0, actualPosition)
     }
@@ -786,8 +807,8 @@ internal class ByteArrayUtilsTest {
             includeRightBound = true,
         )
 
-        val actualString = res?.first?.toString(Charsets.UTF_8)
-        val actualPosition = res?.second
+        val actualString = res.first?.toString(Charsets.UTF_8)
+        val actualPosition = res.second
         Assertions.assertEquals("b", actualString) { "Wrong line near 15: $actualString" }
         Assertions.assertEquals(11, actualPosition)
     }
