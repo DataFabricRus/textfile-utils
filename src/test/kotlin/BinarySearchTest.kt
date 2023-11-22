@@ -21,7 +21,7 @@ import kotlin.io.path.writeText
 internal class BinarySearchTest {
 
     @Test
-    fun `test binary-search small file`(@TempDir dir: Path) {
+    fun `test binary-search small file #1`(@TempDir dir: Path) {
         // 42 bytes per line, 515 bytes per text
         val txt = """
             433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A
@@ -54,7 +54,7 @@ internal class BinarySearchTest {
                 searchLine = "aaa:A".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(91),
+                buffer = ByteBuffer.allocate(92),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -73,7 +73,7 @@ internal class BinarySearchTest {
                 searchLine = "x:B".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(91),
+                buffer = ByteBuffer.allocate(92),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -93,7 +93,7 @@ internal class BinarySearchTest {
                 searchLine = "433e7ff4-f3ae-4432-8e31-e3d0d8601780:004:C".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(91),
+                buffer = ByteBuffer.allocate(92),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -112,7 +112,7 @@ internal class BinarySearchTest {
                 searchLine = "00000000-1111-2222-3333-444444444444:XXX:D".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(92),
+                buffer = ByteBuffer.allocate(94),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -130,7 +130,7 @@ internal class BinarySearchTest {
                 searchLine = ":E".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(91),
+                buffer = ByteBuffer.allocate(92),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -148,7 +148,7 @@ internal class BinarySearchTest {
                 searchLine = ":F".toByteArray(charset),
                 startAreaInclusive = 0,
                 endAreaExclusive = it.size(),
-                buffer = ByteBuffer.allocate(91),
+                buffer = ByteBuffer.allocate(92),
                 charset = charset,
                 delimiter = delimiter,
                 comparator = comparator,
@@ -179,6 +179,40 @@ internal class BinarySearchTest {
         Assertions.assertEquals(listOf(
             "f937a264-abef-4d3e-ad86-90c0a0d85e7a:012:G",
         ), resG.second.map { it.toString(charset) })
+    }
+
+    @Test
+    fun `test binary-search small file #2`(@TempDir dir: Path) {
+        val b =
+            "#_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd".toByteArray(Charsets.UTF_8).size
+        println(b)
+        println("\n".toByteArray(Charsets.UTF_8).size)
+        val content = """
+            #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|Q
+            #_001e9f01-ed5d-44e2-ae55-4193e64de640|W
+            #_00225668-5bfe-480a-b09a-8afec80f59a4|E
+            #_02f6f151-064f-4337-9171-a6f14d50ddab|R
+        """.trimIndent()
+
+        val source = Files.createTempFile("xxx-binary-search-", ".xxx")
+        source.writeText(content)
+
+        val fileChannel = Files.newByteChannel(source, StandardOpenOption.READ)
+        fileChannel.use { channel ->
+            content.split("\n").forEach { line ->
+                val key = line.split("|")[0]
+                val (_, lines) = channel.binarySearch(
+                    searchLine = key.toByteArray(Charsets.UTF_8),
+                    delimiter = "\n".toByteArray(Charsets.UTF_8),
+                    comparator = { leftLine, rightLine ->
+                        leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+                    },
+                    maxLineLengthInBytes = 42,
+                    buffer = ByteBuffer.allocateDirect(100),
+                )
+                Assertions.assertEquals(listOf(line), lines.map { it.toString(Charsets.UTF_8) })
+            }
+        }
     }
 
     @Test
@@ -340,7 +374,7 @@ internal class BinarySearchTest {
             #_00225668-5bfe-480a-b09a-8afec80f59a4|aaa
         """.trimIndent()
 
-        val source = Files.createTempFile("testBinarySearchSingleLine-", ".csv-like")
+        val source = Files.createTempFile("xxx-binary-search-", ".xxx")
         source.writeText(content)
 
         val fileChannel = Files.newByteChannel(source, StandardOpenOption.READ)
@@ -357,4 +391,39 @@ internal class BinarySearchTest {
             Assertions.assertEquals(215, n)
         }
     }
+
+    @Test
+    fun `test binary-search exceed max length line error`(@TempDir dir: Path) {
+        val b =
+            "#_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd".toByteArray(Charsets.UTF_8).size
+        println(b)
+        println("\n".toByteArray(Charsets.UTF_8).size)
+        val content = """
+            #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd
+            #_001e9f01-ed5d-44e2-ae55-4193e64de640|b8248fce-c79c-4aea-96cb-2880e13b36e9
+            #_00225668-5bfe-480a-b09a-8afec80f59a4|ce41ce78-e643-42b8-ab82-ce04c8ce4108
+            #_02f6f151-064f-4337-9171-a6f14d50ddab|d74e98d0-8b51-4fda-b1a4-af7d80a06b07
+        """.trimIndent()
+        val key = "#_00225668-5bfe-480a-b09a-8afec80f59a4"
+
+        val source = Files.createTempFile("xxx-binary-search-", ".xxx")
+        source.writeText(content)
+
+        val fileChannel = Files.newByteChannel(source, StandardOpenOption.READ)
+        fileChannel.use { channel ->
+            // buffer size  100 must be >= 2 * (max-line-length + delimiter-length) = 102
+            Assertions.assertThrows(IllegalArgumentException::class.java) {
+                channel.binarySearch(
+                    searchLine = key.toByteArray(Charsets.UTF_8),
+                    delimiter = "\n".toByteArray(Charsets.UTF_8),
+                    comparator = { leftLine, rightLine ->
+                        leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
+                    },
+                    maxLineLengthInBytes = 50,
+                    buffer = ByteBuffer.allocateDirect(100),
+                )
+            }
+        }
+    }
+
 }

@@ -65,12 +65,14 @@ fun binarySearch(
  * @param startAreaInclusive [Long] the starting position in the file, default `0`
  * @param endAreaExclusive [Long] the end position in the file, default [SeekableByteChannel.size]
  * @param delimiter [ByteArray] default `\n`
- * @param buffer [ByteBuffer] to use while reading data from file; default `16384`; for IO `DirectByteBuffer` is most appropriate;
- * note that due to implementation restriction [buffer] size must be greater or equal than [maxLineLengthInBytes]
+ * @param buffer [ByteBuffer] to use while reading data from file; default `16386`;
+ * for IO `DirectByteBuffer` is most appropriate;
+ * note that due to implementation restriction [buffer] size must be greater or equal than `([maxLineLengthInBytes] + [delimiter].size) * 2`
  * @param charset [Charset] default `UTF-8`
  * @param comparator [Comparator]<[String]> to compare lines
- * @param maxLineLengthInBytes [Int] line restriction, to avoid memory lack e.g., when there is no delimiter, default = `8192`
- * @param maxOfLinesPerBlock [Int] maximum number of lines in a paragraph
+ * @param maxLineLengthInBytes [Int] default = `8192`;
+ * note that duet to implementation restriction [maxLineLengthInBytes] must be less or equal than `([buffer].size / 2 - [delimiter].size)`
+ * @param maxOfLinesPerBlock [Int] maximum number of lines in a paragraph, to avoid memory leaks with huge blocks lines of equal by comparator
  * @return [Pair]<[Long], [List]<[ByteArray]>> - the position of bytes in the source channel to the block of found strings;
  * if nothing is found, then the first member of the pair is the position of the next existing string;
  * to insert new line at this position append delimiter to beginning of inserted string, if the position is not 0
@@ -92,8 +94,9 @@ fun SeekableByteChannel.binarySearch(
     require(delimiter.isNotEmpty())
     require(maxLineLengthInBytes > 1)
     require(maxOfLinesPerBlock >= 1)
-    require(buffer.capacity() >= maxLineLengthInBytes * 2) {
-        "buffer ${buffer.capacity()} must be greater than 2 * max-line-length = ${maxLineLengthInBytes * 2}"
+    val minBufferSize = (maxLineLengthInBytes + delimiter.size) * 2
+    require(buffer.capacity() >= minBufferSize) {
+        "buffer size ${buffer.capacity()} must be >= 2 * (max-line-length + delimiter-length) = $minBufferSize"
     }
     var foundLines: Lines? = null
     var absoluteLowInclusive = startAreaInclusive

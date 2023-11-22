@@ -89,7 +89,7 @@ fun String.bytes(charset: Charset): ByteArray {
 
 /**
  * Searches a range of the specified [source] for the specified [searchLine] using the binary search algorithm.
- * The range must be sorted into ascending order according to the [comparator].
+ * The range must be sorted into ascending order by the [comparator].
  * @param searchLine [ByteArray]
  * @param source [ByteBuffer]
  * @param sourceStartInclusive [Int]
@@ -98,20 +98,26 @@ fun String.bytes(charset: Charset): ByteArray {
  * @param comparator [Comparator]
  * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
  * otherwise [delimiter] is required before first line;
- * in other words the [source] is treated as if there is a [delimiter] before the left border
+ * in other words the [source] is treated as if there is a [delimiter] before the left border;
+ * for example: given line `xx yy`, delimiter = ` `, if [includeLeftBound] is `true`, then `xx` is found word,
+ * otherwise we can't determine it since beyond the range could be delimiter: ` xx yy`
  * @param includeRightBound if `true` the last line in the range can have end index equal `[sourceEndExclusive] - 1`,
  * otherwise [delimiter] is required after first line;
  * in other words the [source] is treated as if there is a [delimiter] after the right border
  * @return [Lines]:
- * - `Lines(-1, -1, emptyList())` - cannot find in the [source]; unexpected. on a sorted Array must not happen.
+ * - `Lines(-1, -1, emptyList())` - cannot find in the [source]
+ * - `Lines(-X, -X, emptyList())` - cannot find in the [source], but there is a delimiter at position `X`
  * - `Lines(-1, N, emptyList())` - not found but definitely less than first `Line` in the [source],
  * where `N` is the left position (in the [source]) of the left `Line` (inclusive)
  * - `Lines(N, -1, emptyList())` - not found but definitely greater than last `Line` in the [source],
  * where `N` is the right position (in the [source]) of the right `Line` (exclusive)
- * - `Lines(N, N, emptyList())` - not found but can be inserted at the position `N` (in the [source]) with shifting [source] to the right,
- * this is the start position of the next (right) `Lines` block, note that the inserted data should contain delimiter bytes at the beginning
+ * - `Lines(N, N, emptyList())` - not found but can be inserted at the position `N` (in the [source])
+ * with shifting [source] to the right,
+ * this is the start position of the next (right) `Lines`;
+ * note that the inserted data should follow delimiter bytes at the ending
  * - `Lines(N, M, listOf(ByteArray ..))` - found, `N` (inclusive) and `M` (exclusive) positions (in the [source]) of block
  */
+@Suppress("DuplicatedCode", "UnnecessaryVariable")
 fun byteArrayBinarySearch(
     searchLine: ByteArray,
     source: ByteBuffer,
@@ -134,7 +140,7 @@ fun byteArrayBinarySearch(
             if (includeRightBound && high == sourceEndExclusive) {
                 return Lines(startInclusive = sourceEndExclusive, endExclusive = -1, lines = emptyList())
             }
-            throw IllegalStateException("please report a bug")
+            throw IllegalStateException("bug?")
         }
         val middle = low + high ushr 1
         val current = findLineNearPosition(
@@ -146,22 +152,24 @@ fun byteArrayBinarySearch(
             includeLeftBound = includeLeftBound && low == sourceStartInclusive,
             includeRightBound = includeRightBound && high == sourceEndExclusive,
         )
-        if (current == null) {
+        val bytes = current.first
+        val position = current.second
+        if (bytes == null || position == null) {
             if (!includeLeftBound && low == sourceStartInclusive) {
-                val n = (high - 1)
-                return Lines(startInclusive = -1, endExclusive = n, lines = emptyList())
+                val endExclusive = (high - 1)
+                return Lines(startInclusive = -1, endExclusive = endExclusive, lines = emptyList())
             }
             if (!includeRightBound && high == sourceEndExclusive) {
                 // end
-                val n = low
-                return Lines(startInclusive = n, endExclusive = -1, lines = emptyList())
+                val startInclusive = low
+                return Lines(startInclusive = startInclusive, endExclusive = -1, lines = emptyList())
             }
-            val n = high
-            return Lines(startInclusive = n, endExclusive = n, lines = emptyList())
+            val insertPosition = high
+            return Lines(startInclusive = insertPosition, endExclusive = insertPosition, lines = emptyList())
         }
-        val res = comparator.compare(searchLine, current.first)
-        val nextHigh = current.second // exclusive
-        val nextLow = current.second + current.first.size // inclusive
+        val res = comparator.compare(searchLine, bytes)
+        val nextHigh = position // exclusive
+        val nextLow = position + bytes.size // inclusive
         if (nextHigh == high && nextLow == low) {
             return Lines.NULL
         }
@@ -171,7 +179,7 @@ fun byteArrayBinarySearch(
             low = nextLow
         } else {
             return findLineBlock(
-                foundLine = current,
+                foundLine = bytes to position,
                 source = source,
                 sourceStartInclusive = sourceStartInclusive,
                 sourceEndExclusive = sourceEndExclusive,
@@ -363,12 +371,12 @@ internal fun readRightLinesBlock(
 /**
  * Finds the first line near the specified [position].
  *
- * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
- * otherwise [delimiter] is required before first line;
- * in other word the [source] is treated as if there is a [delimiter] before the left border
- * @param includeRightBound if `true` the last line in the range can have end index equal `[sourceEndExclusive] - 1`,
- * otherwise [delimiter] is required after first line;
- * in other word the [source] is treated as if there is a [delimiter] after the right border
+ * @param includeLeftBound if `true` the first word in the range can have star index equal `[sourceStartInclusive]`,
+ * otherwise [delimiter] is required before first word;
+ * in other words the [source] is treated as if there is a [delimiter] before the left border
+ * @param includeRightBound if `true` the last word in the range can have end index equal `[sourceEndExclusive] - 1`,
+ * otherwise [delimiter] is required after last word;
+ * in other words the [source] is treated as if there is a [delimiter] after the right border
  *
  * @return a [Pair] of found `Line` and its start position in the [source] (inclusive)
  */
@@ -380,7 +388,7 @@ internal fun findLineNearPosition(
     delimiter: ByteArray,
     includeLeftBound: Boolean = true,
     includeRightBound: Boolean = true,
-): Pair<ByteArray, Int>? {
+): Pair<ByteArray?, Int?> {
     checkLineSearchParameters(source, sourceStartInclusive, sourceEndExclusive, delimiter)
     require(position in sourceStartInclusive until sourceEndExclusive) {
         "position=$position !e [$sourceStartInclusive, $sourceEndExclusive)"
@@ -440,11 +448,17 @@ internal fun findLineNearPosition(
         }
     }
     if (leftDelimiterStartInclusive == null || rightDelimiterStartInclusive == null) {
-        return null
+        val singleDelimiterPosition = leftDelimiterStartInclusive ?: rightDelimiterStartInclusive
+        if (singleDelimiterPosition != null) {
+            // single delimiter found
+            return null to singleDelimiterPosition
+        }
+        return null to null
     }
     val startLineInclusive = leftDelimiterStartInclusive + delimiter.size
     if (startLineInclusive > sourceEndExclusive - 1) {
-        return null
+        // not found
+        return null to null
     }
     val endLineExclusive = rightDelimiterStartInclusive
     return source.toByteArray(
@@ -454,7 +468,7 @@ internal fun findLineNearPosition(
 }
 
 /**
- * Extracts byte array from the buffer.
+ * Extracts a byte array from the buffer.
  */
 internal fun ByteBuffer.toByteArray(startInclusive: Int, endExclusive: Int): ByteArray {
     require(startInclusive >= 0)
