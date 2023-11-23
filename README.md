@@ -22,27 +22,27 @@ Contains following utils:
 #### MergeSort:
 ```kotlin
 fun sort(
-    source: Path,
-    target: Path,
-    comparator: Comparator<String>,
-    delimiter: String,
-    allocatedMemorySizeInBytes: Int,
-    controlDiskspace: Boolean,
-    charset: Charset,
-    coroutineContext: CoroutineContext,
+    source: Path,                       // existing regular file
+    target: Path,                       // result file, must not exist
+    comparator: Comparator<String>,     // to compare lines, by default lexicographically
+    delimiter: String,                  // default: `\n`
+    allocatedMemorySizeInBytes: Int,    // the approximate allowed memory consumption
+    controlDiskspace: Boolean,          // if `true` source file will be truncated while process
+    charset: Charset,                   // default: UTF8
+    coroutineContext: CoroutineContext, // default: Dispatchers.IO
 )
 ```
 #### BinarySearch:
 ```kotlin
 fun binarySearch(
-    source: Path,
-    searchLine: String,
-    buffer: ByteBuffer,
-    charset: Charset,
-    delimiter: String,
-    comparator: Comparator<String>,
-    maxOfLinesPerBlock: Int,
-    maxLineLengthInBytes: Int,
+    source: Path,                       // existing regular file
+    searchLine: String,                 // pattern to search
+    buffer: ByteBuffer,                 // to be used while reading data from file
+    charset: Charset,                   // default: UTF8   
+    delimiter: String,                  // default: `\n`
+    comparator: Comparator<String>,     // to compare lines, by default lexicographically
+    maxOfLinesPerBlock: Int,            // maximum number of lines in a paragraph 
+    maxLineLengthInBytes: Int,          // maximum length of line
 ): Pair<Long, List<String>>
 ```
 
@@ -56,7 +56,7 @@ allprojects {
 }
 
 dependencies {
-    implementation 'com.github.DataFabricRus:textfile-utils:1.0-SNAPSHOT'
+    implementation 'com.github.DataFabricRus:textfile-utils:{{last_version}}'
 }
 ```
 
