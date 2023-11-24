@@ -14,13 +14,16 @@ import cc.datafabric.textfileutils.iterators.defaultByteArrayComparator
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.writeText
 
+@Timeout(value = 15, unit = TimeUnit.SECONDS)
 internal class ByteArrayUtilsTest {
 
     @Test
@@ -2159,7 +2162,141 @@ internal class ByteArrayUtilsTest {
                 res.lines(charset)
             )
         }
+    }
 
+    @Test
+    fun `test byte-array binary search #10-a`() {
+        val searchLine = "XXX".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nxxx\nqqq\n".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = buffer.position(),
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = true,
+            includeRightBound = false,
+        )
+        Assertions.assertEquals(0, res.startInclusive)
+        Assertions.assertEquals(0, res.endExclusive)
+        Assertions.assertTrue(res.lines.isEmpty())
+    }
+
+    @Test
+    fun `test byte-array binary search #10-b`() {
+        val searchLine = "XXX".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nqqq\nxxx\n".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = buffer.position(),
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = false,
+            includeRightBound = false,
+        )
+        Assertions.assertEquals(-1, res.startInclusive)
+        Assertions.assertEquals(0, res.endExclusive)
+        Assertions.assertTrue(res.lines.isEmpty())
+    }
+
+    @Test
+    fun `test byte-array binary search #10-c`() {
+        val searchLine = "xxx".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nqqq\nwww\n".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = buffer.position(),
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = true,
+            includeRightBound = true,
+        )
+        Assertions.assertEquals(9, res.startInclusive)
+        Assertions.assertEquals(9, res.endExclusive)
+        Assertions.assertTrue(res.lines.isEmpty())
+    }
+
+    @Test
+    fun `test byte-array binary search #10-d`() {
+        val searchLine = "xxx".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nqqq\nwww\n".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = buffer.position(),
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = true,
+            includeRightBound = false,
+        )
+        // can be inserted at position 8
+        Assertions.assertEquals(8, res.startInclusive)
+        Assertions.assertEquals(-1, res.endExclusive)
+        Assertions.assertTrue(res.lines.isEmpty())
+    }
+
+    @Test
+    fun `test byte-array binary search #10-e`() {
+        val searchLine = "xxx".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nqqq\nwww".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = buffer.position(),
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = true,
+            includeRightBound = true,
+        )
+        // can be inserted at position 8
+        Assertions.assertEquals(8, res.startInclusive)
+        Assertions.assertEquals(-1, res.endExclusive)
+        Assertions.assertTrue(res.lines.isEmpty())
+    }
+
+    @Test
+    fun `test byte-array binary search #10-g`() {
+        val searchLine = "".toByteArray()
+        val delimiter = "\n".toByteArray()
+        val buffer = ByteBuffer.allocate(256)
+        buffer.put("\nqqq\nxxx\n".toByteArray())
+
+        val res = byteArrayBinarySearch(
+            source = buffer,
+            searchLine = searchLine,
+            sourceStartInclusive = 0,
+            sourceEndExclusive = 10,
+            delimiter = delimiter,
+            comparator = defaultByteArrayComparator(),
+            includeLeftBound = true,
+            includeRightBound = false,
+        )
+        Assertions.assertEquals(0, res.startInclusive)
+        Assertions.assertEquals(0, res.endExclusive)
+        Assertions.assertEquals(1, res.lines.size)
+        Assertions.assertEquals(0, res.lines[0].size)
     }
 
 }

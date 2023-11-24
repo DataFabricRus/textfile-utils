@@ -25,7 +25,8 @@ import kotlin.math.min
  * note that due to implementation restriction [buffer] size must be greater or equal than [maxLineLengthInBytes]
  * @param charset [Charset] default `UTF-8`
  * @param comparator [Comparator]<[String]> to compare lines
- * @param maxLineLengthInBytes [Int] line restriction, to avoid memory lack e.g. when there is no delimiter , default = `8192`
+ * @param maxLineLengthInBytes [Int] line restriction, to avoid memory lack, e.g.,
+ * when there is no delimiter, default = `8192`
  * @param maxOfLinesPerBlock [Int] maximum number of lines in a paragraph
  * @return [Pair]<[Long], [List]<[String]>> - the position of bytes in the source channel to the block of found strings;
  * if nothing is found, then the first member of the pair is the position of the next existing string
@@ -123,7 +124,7 @@ fun SeekableByteChannel.binarySearch(
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = comparator.toByteArrayComparator(charset = charset, hashMapOf()),
+            comparator = comparator.toByteArrayComparator(charset = charset, hashMapOf()), // TODO: memory leak
             includeLeftBound = searchArea.first == startAreaInclusive,
             includeRightBound = searchArea.second == endAreaExclusive,
         )
