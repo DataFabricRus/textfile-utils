@@ -106,7 +106,6 @@ fun String.bytes(charset: Charset): ByteArray {
  * in other words the [source] is treated as if there is a [delimiter] after the right border
  * @return [Lines]:
  * - `Lines(-1, -1, emptyList())` - cannot find in the [source]
- * - `Lines(-X, -X, emptyList())` - cannot find in the [source], but there is a delimiter at position `X`
  * - `Lines(-1, N, emptyList())` - not found but definitely less than first `Line` in the [source],
  * where `N` is the left position (in the [source]) of the left `Line` (inclusive)
  * - `Lines(N, -1, emptyList())` - not found but definitely greater than last `Line` in the [source],
@@ -168,11 +167,30 @@ fun byteArrayBinarySearch(
             return Lines(startInclusive = insertPosition, endExclusive = insertPosition, lines = emptyList())
         }
         val res = comparator.compare(searchLine, bytes)
+        if (bytes.isEmpty() && res != 0) {
+            // delimiter at the beginning or end of the source area
+            if (res > 0 && low == sourceStartInclusive && high == sourceStartInclusive + delimiter.size) {
+                // empty bytes array at the beginning following by the delimiter; less than the search string
+                return if (includeLeftBound) {
+                    // new word can be inserted at start position
+                    Lines(startInclusive = low, endExclusive = low, lines = listOf())
+                } else {
+                    // the less word somewhere before search area
+                    Lines(startInclusive = -1, endExclusive = low, lines = emptyList())
+                }
+            }
+            if (res < 0 && high == sourceEndExclusive && low == sourceEndExclusive - delimiter.size) {
+                // empty bytes array at the end after the delimiter; greater than the search string
+                return if (includeRightBound) {
+                    Lines(startInclusive = high, endExclusive = high, lines = listOf())
+                } else {
+                    Lines(startInclusive = high, endExclusive = -1, lines = emptyList())
+                }
+            }
+            throw IllegalStateException("bug?")
+        }
         val nextHigh = position // exclusive
         val nextLow = position + bytes.size // inclusive
-        if (nextHigh == high && nextLow == low) {
-            return Lines.NULL
-        }
         if (res < 0) {
             high = nextHigh
         } else if (res > 0) {
@@ -282,7 +300,7 @@ internal fun findLineBlock(
  * @param comparator [Comparator] to select adjacent lines which equal to the given [searchLine] ((compareTo = 0))
  * @param includeLeftBound if `true` the first line in the range can have star index equal `[sourceStartInclusive]`,
  * otherwise [delimiter] is required before first line;
- * in other word the [source] is treated as if there is a [delimiter] before the left border
+ * in other words the [source] is treated as if there is a [delimiter] before the left border
  * @return [Sequence]<[Lines]>
  */
 internal fun readLeftLinesBlock(
@@ -330,7 +348,7 @@ internal fun readLeftLinesBlock(
  * @param comparator [Comparator] to select adjacent lines which equal to the given [searchLine] ((compareTo = 0))
  * @param includeRightBound if `true` the last line in the range can have end index equal `[sourceEndExclusive] - 1`,
  * otherwise [delimiter] is required after first line;
- * in other word the [source] is treated as if there is a [delimiter] after the right border
+ * in other words the [source] is treated as if there is a [delimiter] after the right border
  * @return [Sequence]<[Lines]>
  */
 internal fun readRightLinesBlock(

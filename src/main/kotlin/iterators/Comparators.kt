@@ -17,7 +17,7 @@ inline fun <reified X> defaultComparator(): Comparator<X> {
 /**
  * For comparing two [ByteArray] strings lexicographically just as common strings.
  * @param charset [Charset]
- * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
+ * @param cache can be `null`; used to reduce the number of creations of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
  * therefore use identity-hash-code that would be different for two arrays with the same content
  */
@@ -40,7 +40,7 @@ fun defaultByteArrayComparator(
  * Creates [ByteArray] comparator from this comparator.
  * Uses cache while comparing to reduce the number of bytes->String transformation.
  * @param charset [Charset]
- * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
+ * @param cache can be `null`; used to reduce the number of creations of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
  * therefore use identity-hash-code that would be different for two arrays with the same content
  */
@@ -53,7 +53,7 @@ internal fun Comparator<String>.toByteArrayComparator(
  * Creates [ByteArray] comparator from this comparator.
  * Uses cache while comparing to reduce the number of bytes->String transformation.
  * @param charset [Charset]
- * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
+ * @param cache can be `null`; used to reduce the number of creations of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
  * therefore use identity-hash-code that would be different for two arrays with the same content
  * @param toX [String] -> [X] mapping
@@ -84,7 +84,7 @@ fun <X> Comparator<X>.toByteArrayComparator(
 /**
  * Creates [Comparator]<[ByteArray]>
  * @param charset [Charset]
- * @param cache can be `null`; used to reduce the number of creation of new [String]s when comparing;
+ * @param cache can be `null`; used to reduce the number of creations of new [String]s when comparing;
  * note that produced cache-[Map] has [ByteArray] as key-type and
  * therefore use identity-hash-code that would be different for two arrays with the same content
  * @param map [String] -> [X] mapping
