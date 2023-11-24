@@ -124,7 +124,7 @@ fun SeekableByteChannel.binarySearch(
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = comparator.toByteArrayComparator(charset = charset, hashMapOf()), // TODO: memory leak
+            comparator = comparator.toByteArrayComparator(charset = charset),
             includeLeftBound = searchArea.first == startAreaInclusive,
             includeRightBound = searchArea.second == endAreaExclusive,
         )
