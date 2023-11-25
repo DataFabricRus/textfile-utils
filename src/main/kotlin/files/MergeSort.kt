@@ -31,7 +31,7 @@ import kotlin.io.path.moveTo
 import kotlin.math.max
 
 /**
- * Sorts the content of the given file and writes result to the specified target file.
+ * Sorts the content of the given file and writes the result to the specified target file.
  * This method **blocks** the current thread _interruptibly_ until its completion.
  * This function **should not** be used from a coroutine.
  *
@@ -42,11 +42,11 @@ import kotlin.math.max
  * The memory consumption of all operations is controlled by [allocatedMemorySizeInBytes] parameter.
  *
  * If [controlDiskspace] is `true` no additional diskspace is required:
- * source file and its parts files will be truncated during the process and [source] file will be deleted,
+ * source file and its part files will be truncated during the process and [source] file will be deleted,
  * but the whole process in this case can take a long time.
  *
  * @param [source][Path] existing regular file
- * @param [target][Path] result file, must not exist
+ * @param [target][Path] result file; must not exist
  * @param [comparator][Comparator]<[String]>
  * @param [delimiter][String]
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
@@ -89,17 +89,17 @@ fun sort(
  * The memory consumption of all operations is controlled by [allocatedMemorySizeInBytes] parameter.
  *
  * If [controlDiskspace] is `true` no additional diskspace is required:
- * source file and its parts files will be truncated during the process and [source] file will be deleted,
+ * source file and its part files will be truncated during the process and [source] file will be deleted,
  * but the whole process in this case can take a long time.
  *
  * @param [source][Path] existing regular file
- * @param [target][Path] result file, must not exist
+ * @param [target][Path] result file; must not exist
  * @param [comparator][Comparator]<[String]>
  * @param [delimiter][String]
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
  * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace, but the whole process will take will require more time
+ * this allows saving diskspace, but the whole process will take will require more time
  * @param [charset][Charset]
  * @param [coroutineContext][CoroutineContext]
  */
@@ -193,7 +193,7 @@ suspend fun suspendSort(
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
  * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
  * @param [controlDiskspace] if `true` source file will be truncated while processing and completely deleted at the end of it;
- * this allows to save diskspace, but the whole process will take will require more time
+ * this allows saving diskspace, but the whole process will take will require more time
  * @param [charset][Charset]
  * @param [coroutineContext][CoroutineContext]
  * @param [numOfWriteWorkers] number of coroutines that will handle write operations

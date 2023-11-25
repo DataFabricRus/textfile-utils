@@ -9,8 +9,8 @@ import cc.datafabric.textfileutils.files.findLineNearPosition
 import cc.datafabric.textfileutils.files.firstIndexOf
 import cc.datafabric.textfileutils.files.lastIndexOf
 import cc.datafabric.textfileutils.files.use
-import cc.datafabric.textfileutils.iterators.byteArrayComparator
-import cc.datafabric.textfileutils.iterators.defaultByteArrayComparator
+import cc.datafabric.textfileutils.iterators.byteArrayCachedStringComparator
+import cc.datafabric.textfileutils.iterators.byteArrayMapComparator
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -835,7 +835,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(),
+                comparator = byteArrayCachedStringComparator(),
             )
             val actualLines = res.lines(charset)
             val actualStartPosition = res.startInclusive
@@ -866,7 +866,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(charset)
         val actualStartPosition = res.startInclusive
@@ -894,7 +894,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -919,7 +919,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -943,7 +943,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -972,7 +972,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -997,7 +997,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1027,7 +1027,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1055,7 +1055,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1085,7 +1085,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(charset)
         val actualStartPosition = res.startInclusive
@@ -1115,7 +1115,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         Assertions.assertEquals(Lines.NULL, res)
     }
@@ -1140,7 +1140,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1170,7 +1170,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = true,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1194,7 +1194,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = false,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1219,7 +1219,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1245,7 +1245,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 17,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
 
         val actualLines = res.lines(Charsets.UTF_8)
@@ -1275,7 +1275,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1302,7 +1302,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1329,7 +1329,7 @@ internal class ByteArrayUtilsTest {
             delimiter = delimiter,
             includeLeftBound = false,
             includeRightBound = true,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
         )
         val actualLines = res.lines(Charsets.UTF_8)
         val actualStartPosition = res.startInclusive
@@ -1356,7 +1356,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(11, res.startInclusive)
         Assertions.assertEquals(27, res.endExclusive)
@@ -1381,7 +1381,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(101, res.startInclusive)
         Assertions.assertEquals(102, res.endExclusive)
@@ -1406,7 +1406,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(101, res.startInclusive)
         Assertions.assertEquals(102, res.endExclusive)
@@ -1431,7 +1431,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(140, res.startInclusive)
         Assertions.assertEquals(148, res.endExclusive)
@@ -1456,7 +1456,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1483,7 +1483,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 42,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1512,7 +1512,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
                 delimiter = delimiter,
-                comparator = byteArrayComparator(charset) { it.toInt() },
+                comparator = byteArrayMapComparator(charset) { it.toInt() },
                 includeLeftBound = true,
                 includeRightBound = true,
             )
@@ -1538,7 +1538,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1565,7 +1565,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1592,7 +1592,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1619,7 +1619,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1646,7 +1646,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1673,7 +1673,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1700,7 +1700,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 2,
             sourceEndExclusive = 13,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = false,
             includeRightBound = false,
         )
@@ -1727,7 +1727,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 9,
             sourceEndExclusive = 13,
             delimiter = delimiter,
-            comparator = byteArrayComparator(charset) { it.toInt() },
+            comparator = byteArrayMapComparator(charset) { it.toInt() },
             includeLeftBound = false,
             includeRightBound = false,
         )
@@ -1762,7 +1762,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = 42,
                 delimiter = delimiter,
-                comparator = byteArrayComparator(charset) { it },
+                comparator = byteArrayMapComparator(charset) { it },
                 includeLeftBound = true,
                 includeRightBound = false,
             )
@@ -1803,7 +1803,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 42,
                 sourceEndExclusive = 437,
                 delimiter = delimiter,
-                comparator = byteArrayComparator(charset) { it },
+                comparator = byteArrayMapComparator(charset) { it },
             )
             val expected = (0 until w.second).map { w.first }
             Assertions.assertEquals(expected, res.lines(charset)) { "word='$w', expected indexes=$i" }
@@ -1838,7 +1838,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = it,
                 sourceEndExclusive = 42,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(charset),
+                comparator = byteArrayCachedStringComparator(charset),
                 includeLeftBound = false,
                 includeRightBound = false,
             )
@@ -1874,7 +1874,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 221,
                 sourceEndExclusive = it,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(charset),
+                comparator = byteArrayCachedStringComparator(charset),
                 includeLeftBound = false,
                 includeRightBound = false,
             )
@@ -1901,7 +1901,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = false,
         )
@@ -1923,7 +1923,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -1943,7 +1943,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(listOf("ການທົດສອບ"), res.lines(charset))
     }
@@ -1961,7 +1961,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = source.size,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
         )
         Assertions.assertEquals(listOf("ፈተና", "ፈተና"), res.lines(charset))
     }
@@ -1982,7 +1982,7 @@ internal class ByteArrayUtilsTest {
                 sourceStartInclusive = 0,
                 sourceEndExclusive = source.size,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(charset),
+                comparator = byteArrayCachedStringComparator(charset),
             )
             Assertions.assertEquals(listOf(word), res.lines(charset)) { "Can't find word `$word`" }
         }
@@ -2000,7 +2000,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 1,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -2013,7 +2013,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 1,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(charset),
+            comparator = byteArrayCachedStringComparator(charset),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -2177,7 +2177,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = true,
             includeRightBound = false,
         )
@@ -2199,7 +2199,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = false,
             includeRightBound = false,
         )
@@ -2221,7 +2221,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -2243,7 +2243,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = true,
             includeRightBound = false,
         )
@@ -2266,7 +2266,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = true,
             includeRightBound = true,
         )
@@ -2289,7 +2289,7 @@ internal class ByteArrayUtilsTest {
             sourceStartInclusive = 0,
             sourceEndExclusive = 10,
             delimiter = delimiter,
-            comparator = defaultByteArrayComparator(),
+            comparator = byteArrayCachedStringComparator(),
             includeLeftBound = true,
             includeRightBound = false,
         )
