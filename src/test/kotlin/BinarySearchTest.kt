@@ -4,7 +4,9 @@ import cc.datafabric.textfileutils.files.binarySearch
 import cc.datafabric.textfileutils.files.readLeftLines
 import cc.datafabric.textfileutils.files.readRightLines
 import cc.datafabric.textfileutils.files.use
-import cc.datafabric.textfileutils.iterators.defaultByteArrayComparator
+import cc.datafabric.textfileutils.iterators.byteArrayCachedStringComparator
+import cc.datafabric.textfileutils.iterators.byteArrayPrefixSimpleComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
@@ -39,7 +41,7 @@ internal class BinarySearchTest {
         """.trimIndent()
 
         val charset = Charsets.UTF_8
-        val delimiter = "\n".toByteArray(charset)
+        val delimiter = "\n"
         val comparator = Comparator<String> { left, right ->
             val a = left.substringAfterLast(":")
             val b = right.substringAfterLast(":")
@@ -63,10 +65,13 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(0, resA.first)
-        Assertions.assertEquals(listOf(
-            "433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A",
-            "b6b65cc6-1584-41c3-af01-42eacf18623d:002:A",
-        ), resA.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A",
+                "b6b65cc6-1584-41c3-af01-42eacf18623d:002:A",
+            ),
+            resA.second
+        )
 
         val resB = file.use {
             it.binarySearch(
@@ -82,11 +87,14 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(86, resB.first)
-        Assertions.assertEquals(listOf(
-            "b6b65cc6-1584-41c3-af01-42eacf18623d:003:B",
-            "433e7ff4-f3ae-4432-8e31-e3d0d8601780:004:B",
-            "3466935b-cb0d-4586-81c6-cd5b82c8922c:005:B",
-        ), resB.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "b6b65cc6-1584-41c3-af01-42eacf18623d:003:B",
+                "433e7ff4-f3ae-4432-8e31-e3d0d8601780:004:B",
+                "3466935b-cb0d-4586-81c6-cd5b82c8922c:005:B",
+            ),
+            resB.second
+        )
 
         val resC = file.use {
             it.binarySearch(
@@ -102,10 +110,13 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(215, resC.first)
-        Assertions.assertEquals(listOf(
-            "433e7ff4-f3ae-4432-8e31-e3d0d8601780:006:C",
-            "543dc027-19f8-48e4-9e82-3c0413b91d90:007:C",
-        ), resC.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "433e7ff4-f3ae-4432-8e31-e3d0d8601780:006:C",
+                "543dc027-19f8-48e4-9e82-3c0413b91d90:007:C",
+            ),
+            resC.second
+        )
 
         val resD = file.use {
             it.binarySearch(
@@ -121,9 +132,12 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(301, resD.first)
-        Assertions.assertEquals(listOf(
-            "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:D",
-        ), resD.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "433e7ff4-f3ae-4432-8e31-e3d0d8601780:008:D",
+            ),
+            resD.second
+        )
 
         val resE = file.use {
             it.binarySearch(
@@ -139,9 +153,12 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(344, resE.first)
-        Assertions.assertEquals(listOf(
-            "d7411949-bc08-443e-b8fa-997187d6f73e:009:E",
-        ), resE.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "d7411949-bc08-443e-b8fa-997187d6f73e:009:E",
+            ),
+            resE.second
+        )
 
         val resF = file.use {
             it.binarySearch(
@@ -157,10 +174,13 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(387, resF.first)
-        Assertions.assertEquals(listOf(
-            "3466935b-cb0d-4586-81c6-cd5b82c8922c:010:F",
-            "3466935b-cb0d-4586-81c6-cd5b82c8922c:011:F",
-        ), resF.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "3466935b-cb0d-4586-81c6-cd5b82c8922c:010:F",
+                "3466935b-cb0d-4586-81c6-cd5b82c8922c:011:F",
+            ),
+            resF.second
+        )
 
         val resG = file.use {
             it.binarySearch(
@@ -176,9 +196,12 @@ internal class BinarySearchTest {
             )
         }
         Assertions.assertEquals(473, resG.first)
-        Assertions.assertEquals(listOf(
-            "f937a264-abef-4d3e-ad86-90c0a0d85e7a:012:G",
-        ), resG.second.map { it.toString(charset) })
+        Assertions.assertEquals(
+            listOf(
+                "f937a264-abef-4d3e-ad86-90c0a0d85e7a:012:G",
+            ),
+            resG.second
+        )
     }
 
     @Test
@@ -204,9 +227,7 @@ internal class BinarySearchTest {
                 val (_, lines) = channel.binarySearch(
                     searchLine = key.toByteArray(Charsets.UTF_8),
                     delimiter = "\n".toByteArray(Charsets.UTF_8),
-                    comparator = { leftLine, rightLine ->
-                        leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
-                    },
+                    comparator = byteArrayPrefixSimpleComparator("|"),
                     maxLineLengthInBytes = 42,
                     buffer = ByteBuffer.allocateDirect(100),
                 )
@@ -270,9 +291,9 @@ internal class BinarySearchTest {
             val (n1, lines1) = channel.binarySearch(
                 searchLine = "#_ffdf5659-17d3-4de2-9397-7fbef06ed785".toByteArray(Charsets.UTF_8),
                 delimiter = "\n".toByteArray(Charsets.UTF_8),
-                comparator = { leftLine, rightLine ->
+                comparator = Comparator<String> { leftLine, rightLine ->
                     leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
-                }
+                }.toByteArrayComparator(),
             )
 
             println("$n1::$lines1")
@@ -286,9 +307,9 @@ internal class BinarySearchTest {
                 channel.binarySearch(
                     searchLine = "".toByteArray(Charsets.UTF_8),
                     delimiter = "\n".toByteArray(Charsets.UTF_8),
-                    comparator = { leftLine, rightLine ->
+                    comparator = Comparator<String> { leftLine, rightLine ->
                         leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
-                    }
+                    }.toByteArrayComparator(),
                 )
             Assertions.assertEquals(1, n2)
             Assertions.assertTrue(lines2.isEmpty())
@@ -317,7 +338,7 @@ internal class BinarySearchTest {
                 buffer = source,
                 searchLine = line,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(),
+                comparator = byteArrayCachedStringComparator(),
                 maxOfLines = 42,
                 maxLineLengthInBytes = 1024,
                 res = res,
@@ -353,7 +374,7 @@ internal class BinarySearchTest {
                 buffer = source,
                 searchLine = line,
                 delimiter = delimiter,
-                comparator = defaultByteArrayComparator(),
+                comparator = byteArrayCachedStringComparator(),
                 maxOfLines = 42,
                 maxLineLengthInBytes = 1024,
                 res = res,
@@ -383,9 +404,7 @@ internal class BinarySearchTest {
             val (n, lines) = channel.binarySearch(
                 searchLine = searchLine.toByteArray(Charsets.UTF_8),
                 delimiter = "\n".toByteArray(Charsets.UTF_8),
-                comparator = { leftLine, rightLine ->
-                    leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
-                }
+                comparator = byteArrayPrefixSimpleComparator("|"),
             )
             Assertions.assertTrue(lines.isEmpty())
             Assertions.assertEquals(215, n)
@@ -416,9 +435,7 @@ internal class BinarySearchTest {
                 channel.binarySearch(
                     searchLine = key.toByteArray(Charsets.UTF_8),
                     delimiter = "\n".toByteArray(Charsets.UTF_8),
-                    comparator = { leftLine, rightLine ->
-                        leftLine.substringBefore("|").compareTo(rightLine.substringBefore("|"))
-                    },
+                    comparator = byteArrayPrefixSimpleComparator("|"),
                     maxLineLengthInBytes = 50,
                     buffer = ByteBuffer.allocateDirect(100),
                 )

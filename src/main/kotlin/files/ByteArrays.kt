@@ -560,6 +560,25 @@ private fun ByteBuffer.firstIndexOf(
     }
 }
 
+internal fun isDelimiter(
+    array: ByteArray,
+    startIndex: Int,
+    delimiter: ByteArray
+): Boolean {
+    if (startIndex == array.size) {
+        return true
+    }
+    if (startIndex > array.size - delimiter.size) {
+        return false
+    }
+    for (i in delimiter.indices) {
+        if (array[i + startIndex] != delimiter[i]) {
+            return false
+        }
+    }
+    return true
+}
+
 private fun isDelimiter(
     left: ByteBuffer,
     leftSize: Int,

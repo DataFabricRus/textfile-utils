@@ -116,13 +116,14 @@ fun SeekableByteChannel.readLines(
  * This method works **asynchronously**, which means that the read does not block current context:
  * each read operation is performed in a dedicated coroutine context, emitting next [ByteArray]-item on demand.
  * For control read process internal blocking queue is used,
- * when it is full IO-read stops util the method [Iterator.next] is called.
- * This allows to use different reading processes in parallel.
+ * when it is full IO-read stops until the method [Iterator.next] is called.
+ * This allows using different reading processes in parallel.
  * **Note:** [ResourceIterator] must be closed on finish to release internal resources and stop reading,
  * but this closing won't close this [SeekableByteChannel] channel.
  *
  * @param [startAreaPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
- * @param [endAreaPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
+ * @param [endAreaPositionExclusive][Long] the bytes' index to read to,
+ * non-negative number of bytes from the beginning of area
  * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
  * otherwise the reading is reversed (from the end to start)
  * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
@@ -130,7 +131,7 @@ fun SeekableByteChannel.readLines(
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
  * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
  * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
- * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g. when there is no delimiter, default = `8192`
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g., when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [ResourceIterator]<[ByteArray]> of lines starting from the end of segment to the beginning
@@ -174,13 +175,13 @@ fun SeekableByteChannel.asyncReadByteLines(
  * **Note:** after [ResourceIterator.close] no further reading is possible.
  *
  * @param [startAreaPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
- * @param [endAreaPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
+ * @param [endAreaPositionExclusive][Long] the bytes' index to read to, non-negative number of bytes from the beginning of area
  * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
  * otherwise the reading is reversed (from the end to start)
  * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
  * @param [delimiter] lines-separator; default `\n`
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
- * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g. when there is no delimiter, default = `8192`
+ * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g., when there is no delimiter, default = `8192`
  * @return [ResourceIterator]<[ByteArray]> of lines starting from the end of segment to the beginning
  * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */

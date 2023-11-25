@@ -1,8 +1,8 @@
 package cc.datafabric.textfileutils.files
 
+import cc.datafabric.textfileutils.iterators.byteArrayStringComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
-import cc.datafabric.textfileutils.iterators.toByteArrayLinearSearchComparator
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
@@ -47,7 +47,7 @@ fun binarySearch(
         searchLine = searchLine.toByteArray(charset),
         buffer = buffer,
         delimiter = delimiter.bytes(charset),
-        comparator = comparator,
+        comparator = comparator.toByteArrayComparator(charset),
         maxLineLengthInBytes = maxLineLengthInBytes,
         maxOfLinesPerBlock = maxOfLinesPerBlock,
     )
@@ -65,7 +65,7 @@ fun binarySearch(
  * @param searchLine [ByteArray] pattern
  * @param startAreaInclusive [Long] the starting position in the file, default `0`
  * @param endAreaExclusive [Long] the end position in the file, default [SeekableByteChannel.size]
- * @param delimiter [ByteArray] default `\n`
+ * @param delimiter [String] default `\n`
  * @param buffer [ByteBuffer] to use while reading data from file; default `16386`;
  * for IO `DirectByteBuffer` is most appropriate;
  * note that due to implementation restriction [buffer] size must be greater or equal than `([maxLineLengthInBytes] + [delimiter].size) * 2`
@@ -74,7 +74,7 @@ fun binarySearch(
  * @param maxLineLengthInBytes [Int] default = `8192`;
  * note that duet to implementation restriction [maxLineLengthInBytes] must be less or equal than `([buffer].size / 2 - [delimiter].size)`
  * @param maxOfLinesPerBlock [Int] maximum number of lines in a paragraph, to avoid memory leaks with huge blocks lines of equal by comparator
- * @return [Pair]<[Long], [List]<[ByteArray]>> - the position of bytes in the source channel to the block of found strings;
+ * @return [Pair]<[Long], [List]<[String]>> - the position of bytes in the source channel to the block of found strings;
  * if nothing is found, then the first member of the pair is the position of the next existing string;
  * to insert new line at this position append delimiter to beginning of inserted string, if the position is not 0
  */
@@ -84,8 +84,54 @@ fun SeekableByteChannel.binarySearch(
     endAreaExclusive: Long = size(),
     buffer: ByteBuffer = ByteBuffer.allocateDirect(BINARY_SEARCH_DEFAULT_BUFFER_SIZE_IN_BYTES),
     charset: Charset = Charsets.UTF_8,
-    delimiter: ByteArray = "\n".toByteArray(charset),
+    delimiter: String = "\n",
     comparator: Comparator<String> = defaultComparator(),
+    maxOfLinesPerBlock: Int = BINARY_SEARCH_MAX_NUM_OF_LINES_PER_BLOCK,
+    maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
+): Pair<Long, List<String>> = this.binarySearch(
+    searchLine = searchLine,
+    startAreaInclusive = startAreaInclusive,
+    endAreaExclusive = endAreaExclusive,
+    buffer = buffer,
+    delimiter = delimiter.bytes(charset),
+    comparator = comparator.toByteArrayComparator(charset),
+    maxOfLinesPerBlock = maxOfLinesPerBlock,
+    maxLineLengthInBytes = maxLineLengthInBytes,
+).let {
+    it.first to it.second.map { bytes -> bytes.toString(charset) }
+}
+
+/**
+ * Searches the source channel for strings that match the specified [search-string][searchLine]
+ * using the binary search algorithm.
+ * The data in the channel must be sorted, otherwise the result is unpredictable.
+ * **Note!
+ * The lexicographically sorted content of a file may not be considered sorted if,
+ * for example, there is an empty line at the end of the file.**
+ * @param searchLine [ByteArray] pattern
+ * @param startAreaInclusive [Long] the starting position in the file, default `0`
+ * @param endAreaExclusive [Long] the end position in the file, default [SeekableByteChannel.size]
+ * @param delimiter [ByteArray] default `\n`
+ * @param buffer [ByteBuffer] to use while reading data from file; default `16386`;
+ * for IO `DirectByteBuffer` is most appropriate;
+ * note that due to implementation restriction [buffer] size must be greater or equal than `([maxLineLengthInBytes] + [delimiter].size) * 2`
+ * @param comparator [Comparator]<[ByteArray]> to compare words (sequences of bytes), separated by [delimiter]
+ * @param maxLineLengthInBytes [Int] default = `8192`;
+ * note that duet to implementation restriction
+ * [maxLineLengthInBytes] must be less or equal than `([buffer].size / 2 - [delimiter].size)`
+ * @param maxOfLinesPerBlock [Int] maximum number of words in a paragraph,
+ * to avoid memory leaks with huge blocks lines of equal by comparator
+ * @return [Pair]<[Long], [List]<[ByteArray]>> - the position of bytes in the source channel to the block of found strings;
+ * if nothing is found, then the first member of the pair is the position of the next existing string;
+ * to insert new line at this position append delimiter to beginning of inserted string, if the position is not 0
+ */
+fun SeekableByteChannel.binarySearch(
+    searchLine: ByteArray,
+    startAreaInclusive: Long = 0,
+    endAreaExclusive: Long = size(),
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(BINARY_SEARCH_DEFAULT_BUFFER_SIZE_IN_BYTES),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    comparator: Comparator<ByteArray> = byteArrayStringComparator(Charsets.UTF_8),
     maxOfLinesPerBlock: Int = BINARY_SEARCH_MAX_NUM_OF_LINES_PER_BLOCK,
     maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
 ): Pair<Long, List<ByteArray>> {
@@ -124,13 +170,13 @@ fun SeekableByteChannel.binarySearch(
             sourceStartInclusive = 0,
             sourceEndExclusive = buffer.position(),
             delimiter = delimiter,
-            comparator = comparator.toByteArrayComparator(charset = charset),
+            comparator = comparator,
             includeLeftBound = searchArea.first == startAreaInclusive,
             includeRightBound = searchArea.second == endAreaExclusive,
         )
         if (foundLines.endExclusive == -1 && foundLines.startInclusive == -1) { // Lines.NULL
-            // cannot find
-            throw IllegalStateException("can't find line '${searchLine.toString(charset)}'")
+            // cannot find, unexpected for sorted data
+            throw IllegalStateException("can't find line '${searchLine.toString(Charsets.UTF_8)}'")
         }
         if (foundLines.endExclusive == -1) { // right
             absoluteLowInclusive = searchArea.first + foundLines.startInclusive
@@ -152,7 +198,6 @@ fun SeekableByteChannel.binarySearch(
             buffer = buffer,
             searchLine = searchLine,
             delimiter = delimiter,
-            charset = charset,
             comparator = comparator,
             maxOfLines = maxOfLinesPerBlock,
             maxLineLengthInBytes = maxLineLengthInBytes
@@ -184,19 +229,17 @@ private fun SeekableByteChannel.expandLines(
     buffer: ByteBuffer,
     searchLine: ByteArray,
     delimiter: ByteArray,
-    charset: Charset,
-    comparator: Comparator<String>,
+    comparator: Comparator<ByteArray>,
     maxOfLines: Int,
     maxLineLengthInBytes: Int,
 ): Pair<Long, List<ByteArray>> {
-    val byteArrayComparator = comparator.toByteArrayLinearSearchComparator(searchLine, charset)
     val lines = mutableListOf<ByteArray>()
     val startIndex = readLeftLines(
         readPosition = startLinesPositionInclusive,
         buffer = buffer,
         searchLine = searchLine,
         delimiter = delimiter,
-        comparator = byteArrayComparator,
+        comparator = comparator,
         maxOfLines = maxOfLines,
         maxLineLengthInBytes = maxLineLengthInBytes,
         res = lines,
@@ -207,7 +250,7 @@ private fun SeekableByteChannel.expandLines(
         buffer = buffer,
         searchLine = searchLine,
         delimiter = delimiter,
-        comparator = byteArrayComparator,
+        comparator = comparator,
         maxOfLines = maxOfLines,
         maxLineLengthInBytes = maxLineLengthInBytes,
         res = lines,
