@@ -96,8 +96,12 @@ internal class FilteringResourceIterator<X>(
     private val predicate: (X) -> Boolean
 ) : WrappedResourceIterator<X>(source, onClose) {
 
-    private var nextState: Int = -1 // -1 for unknown, 0 for done, 1 for continue
     private var nextItem: X? = null
+
+    // `nextState = -1` if iteration is not started yet,
+    // `nextState = 0` if the iterator is done,
+    // `nextState = 1` if the iteration is in progress
+    private var nextState: Int = -1
 
     private fun calcNext() {
         while (source.hasNext()) {
@@ -164,8 +168,13 @@ internal class GeneratorResourceIterator<T>(
     private val getNext: () -> T?,
     onClose: () -> Unit,
 ) : BaseResourceIterator<T>(onClose) {
+
     private var nextItem: T? = null
-    private var nextState: Int = -1 // -1 for next unknown, 0 for done, 1 for continue
+
+    // `nextState = -1` if iteration is not started yet,
+    // `nextState = 0` if the iterator is done,
+    // `nextState = 1` if the iteration is in progress
+    private var nextState: Int = -1
 
     private fun calcNext() {
         nextItem = getNext()
