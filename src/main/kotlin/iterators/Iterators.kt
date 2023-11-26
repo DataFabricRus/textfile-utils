@@ -145,7 +145,7 @@ fun <T, K> ResourceIterator<T>.associateBy(keySelector: (T) -> K): Map<K, T> = u
 /**
  * Returns a [Map] containing key-value pairs provided by [transform] function
  * applied to elements of the given resource-iterator.
- * If any of two pairs would have the same key the last one gets added to the map.
+ * If any of two pairs have the same key, the last one gets added to the map.
  * The returned map preserves the entry iteration order of the original resource-iterator.
  * The operation is _terminal_.
  */
@@ -157,7 +157,7 @@ fun <T, K, V> ResourceIterator<T>.associate(transform: (T) -> Pair<K, V>): Map<K
  * Returns a new map containing all key-value pairs from the given resource-iterator of pairs.
  *
  * The returned map preserves the entry iteration order of the original resource-iterator.
- * If any of two pairs would have the same key the last one gets added to the map.
+ * If any of two pairs have the same key, the last one gets added to the map.
  */
 fun <K, V> ResourceIterator<Pair<K, V>>.toMap(): Map<K, V> = use {
     asInternalSequence().toMap()
@@ -199,7 +199,7 @@ inline fun <T, R> ResourceIterator<T>.fold(initial: R, operation: (acc: R, T) ->
 }
 
 /**
- * Returns `true` if all elements matches the given [predicate].
+ * Returns `true` if all elements match the given [predicate].
  * The operation is _terminal_.
  */
 inline fun <T> ResourceIterator<T>.all(predicate: (T) -> Boolean): Boolean = use {
@@ -272,7 +272,7 @@ inline fun <X, R> Iterable<ResourceIterator<X>>.use(block: (Iterable<ResourceIte
 
 /**
  * Provides an internal [Sequence] to be used for calling terminal Sequence's methods
- * (i.e. those methods that reach the end of the underlying [ResourceIterator]).
+ * (i.e., those methods that reach the end of the underlying [ResourceIterator]).
  */
 private fun <X> ResourceIterator<X>.asInternalSequence(): Sequence<X> {
     require(this is BaseResourceIterator)

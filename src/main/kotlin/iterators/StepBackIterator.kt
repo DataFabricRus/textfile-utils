@@ -1,7 +1,7 @@
 package cc.datafabric.textfileutils.iterators
 
 /**
- * An iterator that can return back one step.
+ * An iterator that can take a step back.
  */
 class StepBackIterator<X>(private val base: Iterator<X>) : Iterator<X> {
     private var current: X? = null

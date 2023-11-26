@@ -10,7 +10,7 @@ import java.util.function.Consumer
  *
  * It is not [Sequence] but [Iterator], since we can't control every method of [Sequence].
  *
- * The implementation must [close] the underling resource when there is no more items as well.
+ * The implementation must [close] the underling resource when there are no more items as well.
  * This will make all the _terminal_ operations (e.g. [toList]) and
  * the _intermediate_ operations described by this interface (e.g. [forEach]) safe to use,
  * which means no explicit closing is required (but desirable).

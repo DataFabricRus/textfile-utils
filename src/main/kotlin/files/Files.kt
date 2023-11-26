@@ -19,7 +19,7 @@ import kotlin.io.path.fileSize
 import kotlin.io.path.inputStream
 
 /**
- * Inserts the given [lines] before the specified [position] in assumption
+ * Inserts given [lines] before the specified [position] in assumption
  * that [target] file contains lines separated by [delimiter] and
  * the given [position] is a first byte of some line (or the size of the file to insert at its end).
  * @param target [Path]
@@ -47,7 +47,7 @@ fun insertLines(
 }
 
 /**
- * Inserts the given [data] at the [specified position][beforePosition] of channel.
+ * Inserts the given [data] at the [specified position][beforePosition] of the channel.
  *
  * @param [data][ByteArray] to write
  * @param [beforePosition][Long] the position in the source before which the data should be inserted
@@ -118,8 +118,8 @@ fun SeekableByteChannel.insert(
  * Inverts the file content, `a,b,c` -> `c,b,a`
  * @param [source][Path]
  * @param [target][Path]
- * @param [deleteSourceFiles] if `true` source files will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace
+ * @param [deleteSourceFiles] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace
  * @param [delimiter]
  * @param [charset][Charset]
  */
@@ -190,7 +190,7 @@ fun isSorted(
 }
 
 /**
- * Answers `true` if content of two files are identical.
+ * Answers `true` if content of two files is identical.
  */
 fun contentEquals(left: Path, right: Path): Boolean {
     if (left.fileSize() != right.fileSize()) {
@@ -261,7 +261,7 @@ fun Path.channel(
 ): SeekableByteChannel = Files.newByteChannel(this, *options)
 
 /**
- * Determines whether two given paths are equivalent (i.e. specified paths point to a single physical file, possibly non-existent).
+ * Determines whether two given paths are equivalent (i.e., specified paths point to a single physical file, possibly non-existent).
  */
 fun sameFilePaths(left: Path, right: Path): Boolean = left.normalizeToString() == right.normalizeToString()
 
