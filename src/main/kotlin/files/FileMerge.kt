@@ -34,7 +34,7 @@ import kotlin.math.min
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
  * @param [comparator][Comparator]<[String]>
- * @param [delimiter]
+ * @param [delimiter][String]
  * @param [allocatedMemorySizeInBytes] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize`, approximate memory consumption; number of bytes
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace, but it takes more time
@@ -47,6 +47,52 @@ fun mergeFilesInverse(
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
+    allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
+    writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
+    controlDiskspace: Boolean = false,
+) = mergeFilesInverse(
+    sources = sources,
+    target = target,
+    comparator = comparator.toByteArrayComparator(charset),
+    delimiter = delimiter.bytes(charset),
+    bomSymbols = charset.bomSymbols(),
+    allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+    writeToTotalMemRatio = writeToTotalMemRatio,
+    controlDiskspace = controlDiskspace,
+)
+
+/**
+ * Merges files into single one with fixed allocation.
+ * Source files must be sorted.
+ * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
+ * The target file will be inverse: e.g., if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
+ * The [invert] method can be used to rewrite content in direct order.
+ *
+ * The method allocates `[allocatedMemorySizeInBytes] * [writeToTotalMemRatio]` bytes for write operation,
+ * and `sourceFileSize{i} * [allocatedMemorySizeInBytes] * (1 - [writeToTotalMemRatio]) / sum (sourceFileSize{1} + ... sourceFileSize{N})` bytes for each read operation.
+ *
+ * Note that total memory consumption is greater than [allocatedMemorySizeInBytes], since each operation requires some temporal data.
+ *
+ * If [controlDiskspace] = `true` then source files will be truncated while process and completely deleted at the end of process.
+ * When control diskspace is enabled, the method execution can take a long time.
+ *
+ * @param [sources][Set]<[Path]>
+ * @param [target][Path]
+ * @param [comparator][Comparator]<[ByteArray]>
+ * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
+ * @param [delimiter][String]
+ * @param [allocatedMemorySizeInBytes] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize`, approximate memory consumption; number of bytes
+ * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace, but it takes more time
+ * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
+ */
+fun mergeFilesInverse(
+    sources: Set<Path>,
+    target: Path,
+    comparator: Comparator<ByteArray> = byteArrayStringComparator().reversed(),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    bomSymbols: ByteArray = byteArrayOf(),
     allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
     writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
     controlDiskspace: Boolean = false,
@@ -71,7 +117,7 @@ fun mergeFilesInverse(
         target = target,
         comparator = comparator,
         delimiter = delimiter,
-        charset = charset,
+        bomSymbols = bomSymbols,
         sourceBuffer = { checkNotNull(sourceBuffers[it]) },
         targetBuffer = { writeBuffer },
         controlDiskspace = controlDiskspace,
@@ -90,7 +136,7 @@ fun mergeFilesInverse(
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
  * @param [comparator][Comparator]<[String]>
- * @param [delimiter]
+ * @param [delimiter][String]
  * @param [sourceBuffer] get [ByteBuffer] for read operations, the number of bytes must be greater than 2
  * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
@@ -129,8 +175,8 @@ fun mergeFilesInverse(
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
  * @param [comparator][Comparator]<[ByteArray]>
- * @param [delimiter] e.g. for UTF-16 `" " = [0, 32]`
- * @param [bomSymbols] e.g. for UTF-16 `[-2, -1]`
+ * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
  * @param [sourceBuffer] get [ByteBuffer] for read operations, the number of bytes must be greater than 2
  * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
