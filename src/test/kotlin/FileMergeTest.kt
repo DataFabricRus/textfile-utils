@@ -17,6 +17,7 @@ import kotlin.random.Random
 internal class FileMergeTest {
 
     companion object {
+
         fun mergeFiles(
             leftSource: Path,
             rightSource: Path,
