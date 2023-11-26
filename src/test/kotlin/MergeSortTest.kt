@@ -1,11 +1,16 @@
 package cc.datafabric.textfileutils
 
+import cc.datafabric.textfileutils.files.blockingSort
 import cc.datafabric.textfileutils.files.bomSymbols
+import cc.datafabric.textfileutils.files.bytes
 import cc.datafabric.textfileutils.files.contentEquals
 import cc.datafabric.textfileutils.files.sort
 import cc.datafabric.textfileutils.files.suspendSort
 import cc.datafabric.textfileutils.files.suspendSplitAndSort
+import cc.datafabric.textfileutils.iterators.byteArrayPrefixSimpleComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
+import cc.datafabric.textfileutils.iterators.toStringComparator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
@@ -164,8 +169,7 @@ internal class MergeSortTest {
                 coroutineContext = coroutineContext,
                 charset = Charsets.UTF_16,
                 delimiter = ";",
-                comparator =
-                defaultComparator(),
+                comparator = defaultComparator(),
                 allocatedMemorySizeInBytes = 8912,
             )
         }
@@ -241,23 +245,19 @@ internal class MergeSortTest {
 
         val fileSize = source.fileSize()
         val allocatedMemory = fileSize.toInt() / 4
-        val comparator = Comparator<String> { left, right ->
-            val a = left.substringBefore("::")
-            val b = right.substringBefore("::")
-            a.compareTo(b)
-        }.reversed()
+        val comparator = byteArrayPrefixSimpleComparator("::").reversed()
 
-        sort(
+        blockingSort(
             source = source,
             target = target,
-            delimiter = "\n",
+            delimiter = "\n".toByteArray(Charsets.UTF_8),
+            bomSymbols = byteArrayOf(),
             controlDiskspace = false,
-            charset = Charsets.UTF_8,
             allocatedMemorySizeInBytes = allocatedMemory,
             comparator = comparator,
         )
 
-        checkIsSorted(target, comparator, numLines + numDuplicates)
+        checkIsSorted(target, comparator.toStringComparator(Charsets.UTF_8), numLines + numDuplicates)
         Assertions.assertEquals(fileSize, target.fileSize())
     }
 
@@ -464,11 +464,11 @@ internal class MergeSortTest {
 
         val parts = suspendSplitAndSort(
             source = source,
-            comparator = comparator,
-            delimiter = delimiter,
+            comparator = comparator.toByteArrayComparator(charset),
+            delimiter = delimiter.bytes(charset),
+            bomSymbols = charset.bomSymbols(),
             allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
             controlDiskspace = true,
-            charset = charset,
             coroutineContext = coroutineContext,
         )
 
