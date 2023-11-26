@@ -1,7 +1,9 @@
 package cc.datafabric.textfileutils.files
 
+import cc.datafabric.textfileutils.iterators.byteArrayStringComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.mergeIterators
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import cc.datafabric.textfileutils.iterators.use
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -18,7 +20,7 @@ import kotlin.math.min
  * Merges files into single one with fixed allocation.
  * Source files must be sorted.
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
- * The target file will be inverse: e.g. if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
+ * The target file will be inverse: e.g., if `a < d < b < e < c < f` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`
  * The [invert] method can be used to rewrite content in direct order.
  *
  * The method allocates `[allocatedMemorySizeInBytes] * [writeToTotalMemRatio]` bytes for write operation,
@@ -27,15 +29,15 @@ import kotlin.math.min
  * Note that total memory consumption is greater than [allocatedMemorySizeInBytes], since each operation requires some temporal data.
  *
  * If [controlDiskspace] = `true` then source files will be truncated while process and completely deleted at the end of process.
- * When control diskspace is enabled the method execution can take a long time.
+ * When control diskspace is enabled, the method execution can take a long time.
  *
  * @param [sources][Set]<[Path]>
  * @param [target][Path]
  * @param [comparator][Comparator]<[String]>
  * @param [delimiter]
  * @param [allocatedMemorySizeInBytes] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize`, approximate memory consumption; number of bytes
- * @param [controlDiskspace] if `true` source files will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace, but it takes more time
+ * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace, but it takes more time
  * @param [charset][Charset]
  * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
  */
@@ -77,11 +79,11 @@ fun mergeFilesInverse(
 }
 
 /**
- * Merges two file into single one with fixed allocation.
+ * Merges two files into a single one with fixed allocation.
  * Source files must be sorted.
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
  * The target file content will be in inverse order:
- * e.g. if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
+ * e.g., if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
  * The [invert] method can be used to rewrite content in direct order.
  * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
@@ -91,8 +93,8 @@ fun mergeFilesInverse(
  * @param [delimiter]
  * @param [sourceBuffer] get [ByteBuffer] for read operations, the number of bytes must be greater than 2
  * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
- * @param [controlDiskspace] if `true` source files will be truncated while process and completely deleted at the end of it;
- * this allows to save diskspace
+ * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace
  * @param [charset][Charset]
  */
 fun mergeFilesInverse(
@@ -101,6 +103,45 @@ fun mergeFilesInverse(
     comparator: Comparator<String> = defaultComparator<String>().reversed(),
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
+    sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
+    targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
+    controlDiskspace: Boolean = false,
+) = mergeFilesInverse(
+    sources = sources,
+    target = target,
+    comparator = comparator.toByteArrayComparator(charset),
+    delimiter = delimiter.bytes(charset),
+    bomSymbols = charset.bomSymbols(),
+    sourceBuffer = sourceBuffer,
+    targetBuffer = targetBuffer,
+    controlDiskspace = controlDiskspace,
+)
+
+/**
+ * Merges two files into a single one with fixed allocation.
+ * Source files must be sorted.
+ * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
+ * The target file content will be in inverse order:
+ * e.g., if `a < d < b < e < c < f ` then `a, b, c` + `d, e, f` = `f, c, e, b, d, a`.
+ * The [invert] method can be used to rewrite content in direct order.
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
+ *
+ * @param [sources][Set]<[Path]>
+ * @param [target][Path]
+ * @param [comparator][Comparator]<[ByteArray]>
+ * @param [delimiter] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbols] e.g. for UTF-16 `[-2, -1]`
+ * @param [sourceBuffer] get [ByteBuffer] for read operations, the number of bytes must be greater than 2
+ * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
+ * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace
+ */
+fun mergeFilesInverse(
+    sources: Set<Path>,
+    target: Path,
+    comparator: Comparator<ByteArray> = byteArrayStringComparator().reversed(),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    bomSymbols: ByteArray = byteArrayOf(),
     sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     controlDiskspace: Boolean = false,
@@ -118,8 +159,6 @@ fun mergeFilesInverse(
         "Specified write buffer size is too small: ${writeBuffer.capacity()}"
     }
 
-    val bomSymbols = charset.bomSymbols()
-    val delimiterBytes = delimiter.bytes(charset)
     val segmentSizes = sources.associateWith { file -> AtomicLong(file.fileSize()) }
 
     target.use { res ->
@@ -136,7 +175,7 @@ fun mergeFilesInverse(
                     listener = { size -> segmentSize.set(size) },
                     buffer = readBuffer,
                     delimiter = delimiter,
-                    charset = charset,
+                    bomSymbolsLength = bomSymbols.size,
                     coroutineName = "LeftLinesReader[$file]",
                     internalQueueSize = LINE_READER_INTERNAL_QUEUE_SIZE,
                 )
@@ -147,10 +186,10 @@ fun mergeFilesInverse(
             inputs.map { it.second }.use {
                 mergeIterators(it, comparator).forEach { line ->
                     if (!firstLine) {
-                        res.writeData(delimiterBytes, writeBuffer)
+                        res.writeData(delimiter, writeBuffer)
                     }
                     firstLine = false
-                    res.writeData(line.bytes(charset), writeBuffer)
+                    res.writeData(line, writeBuffer)
                     if (controlDiskspace) {
                         source.forEach { (file, channel) -> channel.truncate(checkNotNull(segmentSizes[file]).get()) }
                     }

@@ -58,7 +58,7 @@ fun SeekableByteChannel.readLines(
 ): ResourceIterator<String> = readLines(
     startAreaPositionInclusive = startAreaPositionInclusive,
     endAreaPositionExclusive = endAreaPositionExclusive,
-    delimiterWithoutBom = delimiter.bytes(charset),
+    delimiter = delimiter.bytes(charset),
     bomSymbolsLength = charset.bomSymbols().size,
     listener = listener,
     direct = direct,
@@ -79,7 +79,7 @@ fun SeekableByteChannel.readLines(
  * non-negative number of bytes from the beginning of area
  * @param [endAreaPositionExclusive][Long] the bytes' index to read to,
  * non-negative number of bytes from the beginning of area
- * @param [delimiterWithoutBom] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [delimiter] e.g. for UTF-16 `" " = [0, 32]`
  * @param [bomSymbolsLength] e.g. for UTF-16 `[-2, -1]`
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
  * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
@@ -98,7 +98,7 @@ fun SeekableByteChannel.readLines(
 fun SeekableByteChannel.readLines(
     startAreaPositionInclusive: Long = 0,
     endAreaPositionExclusive: Long = size(),
-    delimiterWithoutBom: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
     bomSymbolsLength: Int,
     listener: (Long) -> Unit = {},
     direct: Boolean = true,
@@ -110,7 +110,7 @@ fun SeekableByteChannel.readLines(
     coroutineContext: CoroutineContext = Dispatchers.IO,
 ): ResourceIterator<ByteArray> {
     require(buffer.capacity() > 0)
-    require(delimiterWithoutBom.isNotEmpty())
+    require(delimiter.isNotEmpty())
     require(startAreaPositionInclusive in 0..endAreaPositionExclusive)
     require(endAreaPositionExclusive <= size())
     val startPosition = startAreaPositionInclusive + bomSymbolsLength
@@ -129,7 +129,7 @@ fun SeekableByteChannel.readLines(
         if (bytes.isEmpty()) {
             return emptyResourceIterator()
         }
-        val lines = bytes.split(delimiterWithoutBom).mapIndexed { index, ba ->
+        val lines = bytes.split(delimiter).mapIndexed { index, ba ->
             check(ba.size <= maxLineLengthInBytes && ba.size <= maxLineLengthInBytes) {
                 "The line #${index + 1} is too long (max length = $maxLineLengthInBytes, actual length = ${ba.size}"
             }
@@ -148,7 +148,7 @@ fun SeekableByteChannel.readLines(
     return asyncReadByteLines(
         startAreaPositionInclusive = startAreaPositionInclusive + bomSymbolsLength,
         endAreaPositionExclusive = endAreaPositionExclusive,
-        delimiter = delimiterWithoutBom,
+        delimiter = delimiter,
         listener = listener,
         direct = direct,
         buffer = buffer,
