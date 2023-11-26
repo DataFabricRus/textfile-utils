@@ -23,7 +23,7 @@ import kotlin.io.path.writeText
 internal class BinarySearchTest {
 
     @Test
-    fun `test binary-search small file #1`(@TempDir dir: Path) {
+    fun `test binary-search small file #1`() {
         // 42 bytes per line, 515 bytes per text
         val txt = """
             433e7ff4-f3ae-4432-8e31-e3d0d8601780:001:A
@@ -205,11 +205,7 @@ internal class BinarySearchTest {
     }
 
     @Test
-    fun `test binary-search small file #2`(@TempDir dir: Path) {
-        val b =
-            "#_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd".toByteArray(Charsets.UTF_8).size
-        println(b)
-        println("\n".toByteArray(Charsets.UTF_8).size)
+    fun `test binary-search small file #2`() {
         val content = """
             #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|Q
             #_001e9f01-ed5d-44e2-ae55-4193e64de640|W
@@ -296,7 +292,6 @@ internal class BinarySearchTest {
                 }.toByteArrayComparator(),
             )
 
-            println("$n1::$lines1")
             Assertions.assertEquals(41, n1)
             Assertions.assertEquals(
                 listOf("#_ffdf5659-17d3-4de2-9397-7fbef06ed785|B"),
@@ -317,7 +312,7 @@ internal class BinarySearchTest {
     }
 
     @Test
-    fun `test read-left-lines`(@TempDir dir: Path) {
+    fun `test read-left-lines`() {
         // ...  41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68, ...
         // ... 119, 124,  73,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  52, 124, ...
         // ...   w,   |,   I,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   4,   |, ...
@@ -352,7 +347,7 @@ internal class BinarySearchTest {
     }
 
     @Test
-    fun `test read-right-lines`(@TempDir dir: Path) {
+    fun `test read-right-lines`() {
         //  ...  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40, ...
         //  ... 124, 120,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124,  42,  42, 124, 120, ...
         //  ...   |,   x,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   *,   *,   |,   x, ...
@@ -386,7 +381,7 @@ internal class BinarySearchTest {
     }
 
     @Test
-    fun `test binary-search not found`(@TempDir dir: Path) {
+    fun `test binary-search not found`() {
         val content = """
             #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|xxx
             #_000a0e22-5e84-40c8-9fb2-ceec4fd1f187|vvv
@@ -412,11 +407,7 @@ internal class BinarySearchTest {
     }
 
     @Test
-    fun `test binary-search exceed max length line error`(@TempDir dir: Path) {
-        val b =
-            "#_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd".toByteArray(Charsets.UTF_8).size
-        println(b)
-        println("\n".toByteArray(Charsets.UTF_8).size)
+    fun `test binary-search exceed max length line error`() {
         val content = """
             #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd
             #_001e9f01-ed5d-44e2-ae55-4193e64de640|b8248fce-c79c-4aea-96cb-2880e13b36e9

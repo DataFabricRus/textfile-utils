@@ -5,7 +5,8 @@ package cc.datafabric.textfileutils.iterators
 
 /**
  * Classic merge algorithm for [kotlin-sequences][Sequence].
- * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * The source data must be sorted,
+ * i.e., the next element in the iterator must be less than or equal to the previous element.
  * If given data is not sorted, strange output is expected
  * @param [other][Sequence]<[X]>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
@@ -20,7 +21,8 @@ inline fun <reified X> Sequence<X>.mergeWith(
 
 /**
  * Classic merge algorithm for [kotlin-sequences][Sequence].
- * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * The source data must be sorted,
+ * i.e., the next element in the iterator must be less than or equal to the previous element.
  * @param [sources][Iterable]<[Sequence]<[X]>>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
  * @param [X] must be [Comparable] if no [comparator] is provided
@@ -38,7 +40,8 @@ inline fun <reified X> mergeSequences(
 
 /**
  * Classic merge algorithm for [Iterator].
- * The source data must be sorted, i.e. the next element in the iterator must be less than or equal to the previous element.
+ * The source data must be sorted,
+ * i.e., the next element in the iterator must be less than or equal to the previous element.
  * @param [sources][Iterable]<[Iterator]<[X]>>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
  * @param [X] must be [Comparable] if no [comparator] is provided
@@ -56,7 +59,8 @@ inline fun <reified X> mergeIterators(
 
 /**
  * Classic merge algorithm for [iterators][Iterator].
- * The source data must be sorted, i.e. the next element in the iterator must be greater than or equal to the previous element.
+ * The source data must be sorted,
+ * i.e., the next element in the iterator must be greater than or equal to the previous element.
  * @param [sourceLeft][Iterator]<[X]>
  * @param [sourceRight][Iterator]<[X]>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
@@ -73,8 +77,8 @@ inline fun <reified X> mergeIterators(
 
 /**
  * Classic merge algorithm for [collection][Collection] of [iterators][Iterator].
- * The source iterators must produce sorted sequence of items,
- * i.e. the next element in the iterator must be greater than or equal to the previous element.
+ * The source iterators must produce a sorted sequence of items,
+ * i.e., the next element in the iterator must be greater than or equal to the previous element.
  * @param [sources][Iterable]<[Iterator]<[X]>>
  * @param [comparator][Comparator] if not specified the type [X] is required to be [Comparable]
  * @param [target] storage to write merged data
