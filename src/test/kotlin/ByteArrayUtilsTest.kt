@@ -8,6 +8,7 @@ import cc.datafabric.textfileutils.files.findLineBlock
 import cc.datafabric.textfileutils.files.findLineNearPosition
 import cc.datafabric.textfileutils.files.firstIndexOf
 import cc.datafabric.textfileutils.files.lastIndexOf
+import cc.datafabric.textfileutils.files.split
 import cc.datafabric.textfileutils.files.use
 import cc.datafabric.textfileutils.iterators.byteArrayCachedStringComparator
 import cc.datafabric.textfileutils.iterators.byteArrayMapComparator
@@ -2297,6 +2298,96 @@ internal class ByteArrayUtilsTest {
         Assertions.assertEquals(0, res.endExclusive)
         Assertions.assertEquals(1, res.lines.size)
         Assertions.assertEquals(0, res.lines[0].size)
+    }
+
+    @Test
+    fun `test split array`() {
+        Assertions.assertEquals(
+            listOf(emptyList<Byte>()),
+            byteArrayOf().split("|".toByteArray()).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf(emptyList<Byte>(), emptyList(), emptyList()),
+            byteArrayOf(42, 42).split(byteArrayOf(42)).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf(emptyList<Byte>(), emptyList()),
+            byteArrayOf(42, 42).split(byteArrayOf(42, 42)).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf<List<Byte>>(
+                listOf(2, 4, 2, 6, 98, 1, 0, -2, -128, 44),
+                listOf(9, 90, 15, 34),
+                emptyList(),
+                emptyList(),
+            ),
+            byteArrayOf(
+                2, 4, 2, 6, 98, 1, 0, -2, -128, 44, 42,
+                9, 90, 15, 34,
+                42,
+                42
+            ).split(byteArrayOf(42)).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf<List<Byte>>(
+                listOf(2, 98),
+                listOf(0),
+                listOf(-128, 44),
+                listOf(9, 90, 15, 34),
+                listOf(66, 76, 20),
+                emptyList(),
+                listOf(9, 90, 21),
+            ),
+            byteArrayOf(
+                2, 98, 42,
+                0, 42,
+                -128, 44, 42,
+                9, 90, 15, 34, 42,
+                66, 76, 20, 42,
+                42,
+                9, 90, 21
+            ).split(byteArrayOf(42)).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf<List<Byte>>(
+                listOf(2, 98),
+                listOf(42, -128, 44, 42, 12, 90, 15, 34, 42, 66, 76, 20),
+                listOf(42, 9, 90, 21)
+            ),
+            byteArrayOf(
+                2, 98, 42, 0, 12,
+                42, -128, 44, 42, 12, 90, 15, 34, 42, 66, 76, 20, 42, 0, 12,
+                42, 9, 90, 21,
+            ).split(byteArrayOf(42, 0, 12)).map { it.toList() }.toList()
+        )
+
+        Assertions.assertEquals(
+            listOf<List<Byte>>(
+                listOf(
+                    -48, -68, -48, -72, -47, -128, 32,
+                    -48, -78, -48, -80, -47, -120, -48, -66, -48, -68, -47, -125, 32,
+                    -48, -76, -48, -66, -48, -68, -47, -125
+                ),
+                listOf(
+                    -48, -67, -48, -75, 32,
+                    -47, -127, -47, -126, -47, -128, -47, -106, -48, -69, -47, -113, -48, -71
+                ),
+                listOf(-48, -99, -47, -106, 32, -48, -78, -47, -106, -48, -71, -48, -67, -47, -106, 33),
+            ),
+            byteArrayOf(
+                -48, -68, -48, -72, -47, -128, 32,
+                -48, -78, -48, -80, -47, -120, -48, -66, -48, -68, -47, -125, 32,
+                -48, -76, -48, -66, -48, -68, -47, -125, 33, 32,
+                -48, -67, -48, -75, 32,
+                -47, -127, -47, -126, -47, -128, -47, -106, -48, -69, -47, -113, -48, -71, 33, 32,
+                -48, -99, -47, -106, 32, -48, -78, -47, -106, -48, -71, -48, -67, -47, -106, 33
+            ).split(byteArrayOf(33, 32)).map { it.toList() }.toList()
+        )
     }
 
 }

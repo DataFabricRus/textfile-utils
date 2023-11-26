@@ -21,12 +21,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Reads text [String]-lines from the given area of file.
+ * Reads text as [ResourceIterator]<[String]> lines from the given area of file.
  * The area is set by the specified [startAreaPositionInclusive] and [endAreaPositionExclusive].
  * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
  *
  * @param [startAreaPositionInclusive][Long] the index to read from, non-negative number of bytes from the beginning of area
- * @param [endAreaPositionExclusive][Long] the bytes index to read to, non-negative number of bytes from the beginning of area
+ * @param [endAreaPositionExclusive][Long] the bytes' index to read to,
+ * non-negative number of bytes from the beginning of area
  * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
  * otherwise the reading is reversed (from the end to start)
  * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
@@ -34,7 +35,8 @@ import kotlin.math.min
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
  * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
  * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
- * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack when there is no delimiter for example, default = `8192`
+ * @param [maxLineLengthInBytes][Int] line restriction,
+ * to avoid memory lack when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [ResourceIterator]<[String]> of lines starting from the end of segment to the beginning
@@ -53,13 +55,65 @@ fun SeekableByteChannel.readLines(
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineName: String = "AsyncLineReader",
     coroutineContext: CoroutineContext = Dispatchers.IO,
-): ResourceIterator<String> {
+): ResourceIterator<String> = readLines(
+    startAreaPositionInclusive = startAreaPositionInclusive,
+    endAreaPositionExclusive = endAreaPositionExclusive,
+    delimiterWithoutBom = delimiter.bytes(charset),
+    bomSymbolsLength = charset.bomSymbols().size,
+    listener = listener,
+    direct = direct,
+    buffer = buffer,
+    maxLineLengthInBytes = maxLineLengthInBytes,
+    singleOperationTimeoutInMs = singleOperationTimeoutInMs,
+    internalQueueSize = internalQueueSize,
+    coroutineName = coroutineName,
+    coroutineContext = coroutineContext,
+).map { it.toString(charset) }
+
+/**
+ * Reads text as [ResourceIterator]<[ByteArray]> lines from the given area of file.
+ * The area is set by the specified [startAreaPositionInclusive] and [endAreaPositionExclusive].
+ * Since this is IO operation, the [DirectByteBuffer][ByteBuffer.allocateDirect] is preferred.
+ *
+ * @param [startAreaPositionInclusive][Long] the index to read from,
+ * non-negative number of bytes from the beginning of area
+ * @param [endAreaPositionExclusive][Long] the bytes' index to read to,
+ * non-negative number of bytes from the beginning of area
+ * @param [delimiterWithoutBom] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbolsLength] e.g. for UTF-16 `[-2, -1]`
+ * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
+ * @param [direct][Boolean] if `true` the reading is performed from the beginning to the end of area,
+ * otherwise the reading is reversed (from the end to start)
+ * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`;
+ * for IO `DirectByteBuffer` is most appropriate
+ * @param [maxLineLengthInBytes][Int] line restriction,
+ * to avoid memory lack when there is no delimiter, default = `8192`
+ * @param [singleOperationTimeoutInMs][Long] to prevent hangs
+ * @param [internalQueueSize][Int] to hold lines before emitting
+ * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
+ * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
+ * @return [ResourceIterator]<[String]> of lines starting from the end of segment to the beginning
+ * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
+ */
+fun SeekableByteChannel.readLines(
+    startAreaPositionInclusive: Long = 0,
+    endAreaPositionExclusive: Long = size(),
+    delimiterWithoutBom: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    bomSymbolsLength: Int,
+    listener: (Long) -> Unit = {},
+    direct: Boolean = true,
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
+    maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
+    singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
+    internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
+    coroutineName: String = "AsyncLineReader",
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+): ResourceIterator<ByteArray> {
     require(buffer.capacity() > 0)
-    require(delimiter.isNotEmpty())
+    require(delimiterWithoutBom.isNotEmpty())
     require(startAreaPositionInclusive in 0..endAreaPositionExclusive)
     require(endAreaPositionExclusive <= size())
-    val bomSymbols = charset.bomSymbols()
-    val startPosition = startAreaPositionInclusive + bomSymbols.size
+    val startPosition = startAreaPositionInclusive + bomSymbolsLength
     val areaSize = endAreaPositionExclusive - startPosition
     if (buffer.capacity() >= areaSize) {
         listener(if (direct) startPosition else endAreaPositionExclusive)
@@ -75,29 +129,26 @@ fun SeekableByteChannel.readLines(
         if (bytes.isEmpty()) {
             return emptyResourceIterator()
         }
-        val lines = bytes.toString(charset).split(delimiter).onEach {
-            check(
-                bytes.size <= maxLineLengthInBytes &&
-                        it.length <= maxLineLengthInBytes &&
-                        it.toByteArray(charset).size <= maxLineLengthInBytes
-            ) {
-                "The line is too long (max length = $maxLineLengthInBytes, actual length = ${it.toByteArray(charset).size}"
+        val lines = bytes.split(delimiterWithoutBom).mapIndexed { index, ba ->
+            check(ba.size <= maxLineLengthInBytes && ba.size <= maxLineLengthInBytes) {
+                "The line #${index + 1} is too long (max length = $maxLineLengthInBytes, actual length = ${ba.size}"
             }
-        }
+            ba
+        }.toList()
         return if (direct) {
             lines.asResourceIterator()
         } else {
             iterator {
-                lines.indices.reversed().forEach {
+                lines.toList().indices.reversed().forEach {
                     yield(lines[it])
                 }
             }.asResourceIterator()
         }
     }
     return asyncReadByteLines(
-        startAreaPositionInclusive = startAreaPositionInclusive + bomSymbols.size,
+        startAreaPositionInclusive = startAreaPositionInclusive + bomSymbolsLength,
         endAreaPositionExclusive = endAreaPositionExclusive,
-        delimiter = delimiter.bytes(charset),
+        delimiter = delimiterWithoutBom,
         listener = listener,
         direct = direct,
         buffer = buffer,
@@ -106,7 +157,7 @@ fun SeekableByteChannel.readLines(
         internalQueueSize = internalQueueSize,
         coroutineName = coroutineName,
         coroutineContext = coroutineContext,
-    ).map { it.toString(charset) }
+    )
 }
 
 /**
@@ -209,7 +260,7 @@ fun SeekableByteChannel.syncReadByteLines(
  * The reader is [AutoCloseable], no further processing is possible after closing.
  * Note that [source][SeekableByteChannel] will not be closed.
  */
-class SyncLineReader (
+class SyncLineReader(
     source: SeekableByteChannel,
     listener: (Long) -> Unit,
     buffer: ByteBuffer,

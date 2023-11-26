@@ -88,6 +88,23 @@ fun String.bytes(charset: Charset): ByteArray {
 }
 
 /**
+ * Splits the array.
+ * Analogy of [String.split].
+ */
+fun ByteArray.split(delimiter: ByteArray): Sequence<ByteArray> = sequence {
+    var start = 0
+    for (index in indices) {
+        if (isDelimiter(array = this@split, startIndex = index, delimiter = delimiter)) {
+            yield(copyOfRange(start, index))
+            start = index + delimiter.size
+        }
+    }
+    if (start <= size) {
+        yield(copyOfRange(start, size))
+    }
+}
+
+/**
  * Searches a range of the specified [source] for the specified [searchLine] using the binary search algorithm.
  * The range must be sorted into ascending order by the [comparator].
  * @param searchLine [ByteArray]

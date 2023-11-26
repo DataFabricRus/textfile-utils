@@ -67,19 +67,19 @@ fun sort(
     coroutineContext: CoroutineContext = Dispatchers.IO,
 ) = runBlocking(coroutineContext) {
     suspendSort(
-        source,
-        target,
-        comparator,
-        delimiter,
-        allocatedMemorySizeInBytes,
-        controlDiskspace,
-        charset,
-        coroutineContext
+        source = source,
+        target = target,
+        comparator = comparator,
+        delimiter = delimiter,
+        allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+        controlDiskspace = controlDiskspace,
+        charset = charset,
+        coroutineContext = coroutineContext
     )
 }
 
 /**
- * Sorts the content of the given file and writes result to the specified target file.
+ * Sorts the content of the given file and writes a result to the specified target file.
  * This is a suspended method, can be used from a coroutine.
  *
  * Performs sorting in memory if [source] file size is small enough (less than [allocatedMemorySizeInBytes]).
