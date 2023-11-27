@@ -5,16 +5,19 @@ plugins {
 }
 
 group = "cc.datafabric"
-version = "1.3-SNAPSHOT-kotlin-1.7"
+version = "1.4-SNAPSHOT-kotlin-1.7"
 
 repositories {
     mavenCentral()
+    maven(url = "https://jitpack.io")
 }
 
 dependencies {
     val junitVersion: String by project
     val kotlinCoroutinesVersion: String by project
+    val resourceIteratorVersion: String by project
 
+    implementation("com.github.DataFabricRus:resource-iterator:$resourceIteratorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 }
@@ -30,7 +33,7 @@ publishing {
 
             pom {
                 name.set("${project.group}:${project.name}")
-                description.set("Thread-safe RDF Graphs")
+                description.set("Text-file Utils")
                 url.set("https://github.com/DataFabricRus/textfile-utils")
                 licenses {
                     license {

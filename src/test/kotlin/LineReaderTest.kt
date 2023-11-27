@@ -1,8 +1,8 @@
 package cc.datafabric.textfileutils
 
+import cc.datafabric.iterators.onEach
 import cc.datafabric.textfileutils.files.readLines
 import cc.datafabric.textfileutils.files.use
-import cc.datafabric.textfileutils.iterators.onEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
