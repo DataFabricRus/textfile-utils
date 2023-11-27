@@ -3,13 +3,13 @@
 A simple JVM library for working with text files of any size.
 The library is based on Java NIO (i.e. `java.nio.channels.SeekableByteChannel`) and Kotlin Coroutines.
 
-The library allows to sort an arbitrary file that can be divided into byte blocks by some delimiter.
+The library allows sorting an arbitrary file that can be divided into byte blocks by some delimiter.
 After sorting, these blocks can be found using a binary search algorithm.
 The library takes care of memory consumption, performance and diskspace, so it is suitable for environments with limited resources.
-Large CSV-files is one example where this library could be used.
-The library is lightweight, so it can be used if there is no possibility to use heavy frameworks or databases.   
+Large CSV-files are one example where this library could be used.
+The library is lightweight, so it can be used if there is no possibility to use heavy frameworks or databases.
 
-Contains following utils:
+Contains the following utils:
 
 - insertion at an arbitrary position in the file
 - reading text lines from the end or start of the file
@@ -48,15 +48,14 @@ fun binarySearch(
 
 #### Available via [jitpack](https://jitpack.io/#DataFabricRus/textfile-utils):
 ```kotlin
-allprojects {
-    repositories {
-        ...
-        maven { url 'https://jitpack.io' }
-    }
+repositories {
+    ...
+    maven(url = "https://jitpack.io")
 }
 
+
 dependencies {
-    implementation 'com.github.DataFabricRus:textfile-utils:{{last_version}}'
+    implementation("com.github.DataFabricRus:textfile-utils:{{latest_version}}")
 }
 ```
 
