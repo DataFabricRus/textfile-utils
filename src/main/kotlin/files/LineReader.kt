@@ -1,8 +1,8 @@
 package cc.datafabric.textfileutils.files
 
-import cc.datafabric.textfileutils.iterators.ResourceIterator
-import cc.datafabric.textfileutils.iterators.asResourceIterator
-import cc.datafabric.textfileutils.iterators.emptyResourceIterator
+import cc.datafabric.iterators.ResourceIterator
+import cc.datafabric.iterators.asResourceIterator
+import cc.datafabric.iterators.emptyResourceIterator
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

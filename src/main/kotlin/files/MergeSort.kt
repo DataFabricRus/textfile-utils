@@ -1,6 +1,6 @@
 package cc.datafabric.textfileutils.files
 
-import cc.datafabric.textfileutils.iterators.ResourceIterator
+import cc.datafabric.iterators.ResourceIterator
 import cc.datafabric.textfileutils.iterators.byteArraySimpleComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator

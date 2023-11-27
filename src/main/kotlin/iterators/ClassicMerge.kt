@@ -2,6 +2,8 @@
 
 package cc.datafabric.textfileutils.iterators
 
+import cc.datafabric.iterators.nextOrNull
+
 
 /**
  * Classic merge algorithm for [kotlin-sequences][Sequence].

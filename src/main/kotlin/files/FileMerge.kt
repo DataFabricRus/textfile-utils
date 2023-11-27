@@ -1,10 +1,11 @@
 package cc.datafabric.textfileutils.files
 
+import cc.datafabric.iterators.ResourceIterator
+import cc.datafabric.iterators.closeAll
 import cc.datafabric.textfileutils.iterators.byteArrayStringComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.mergeIterators
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
-import cc.datafabric.textfileutils.iterators.use
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
@@ -230,7 +231,7 @@ fun mergeFilesInverse(
                 res.write(ByteBuffer.wrap(bomSymbols))
             }
             inputs.map { it.second }.use {
-                mergeIterators(it, comparator).forEach { line ->
+                mergeIterators(this, comparator).forEach { line ->
                     if (!firstLine) {
                         res.writeData(delimiter, writeBuffer)
                     }
@@ -293,4 +294,10 @@ private fun SeekableByteChannel.writeData(
         check(nextIndex < data.size)
         nextIndex
     }
+}
+
+private inline fun <X, R> Iterable<ResourceIterator<X>>.use(block: Iterable<ResourceIterator<X>>.() -> R): R = try {
+    this.block()
+} finally {
+    closeAll()
 }

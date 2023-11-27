@@ -1,9 +1,8 @@
 package cc.datafabric.textfileutils.files
 
-import cc.datafabric.textfileutils.iterators.all
-import cc.datafabric.textfileutils.iterators.closeAll
+import cc.datafabric.iterators.all
+import cc.datafabric.iterators.closeAll
 import cc.datafabric.textfileutils.iterators.defaultComparator
-import cc.datafabric.textfileutils.iterators.forEach
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -245,7 +244,7 @@ fun <X> Collection<Path>.use(
     return try {
         block(channels)
     } finally {
-        channels.values.closeAll { IllegalStateException(it) }
+        channels.values.closeAll(IllegalStateException("exception occurred while closing channels"))
     }
 }
 

@@ -206,10 +206,6 @@ internal class BinarySearchTest {
 
     @Test
     fun `test binary-search small file #2`(@TempDir dir: Path) {
-        val b =
-            "#_000347b5-eec1-4a65-9f4b-bbe4289bf51c|5e7e3338-1d34-4472-848a-cf44727afafd".toByteArray(Charsets.UTF_8).size
-        println(b)
-        println("\n".toByteArray(Charsets.UTF_8).size)
         val content = """
             #_000347b5-eec1-4a65-9f4b-bbe4289bf51c|Q
             #_001e9f01-ed5d-44e2-ae55-4193e64de640|W
