@@ -3,13 +3,13 @@
 A simple JVM library for working with text files of any size.
 The library is based on Java NIO (i.e. `java.nio.channels.SeekableByteChannel`) and Kotlin Coroutines.
 
-The library allows to sort an arbitrary file that can be divided into byte blocks by some delimiter.
+The library allows sorting an arbitrary file that can be divided into byte blocks by some delimiter.
 After sorting, these blocks can be found using a binary search algorithm.
 The library takes care of memory consumption, performance and diskspace, so it is suitable for environments with limited resources.
-Large CSV-files is one example where this library could be used.
-The library is lightweight, so it can be used if there is no possibility to use heavy frameworks or databases.   
+Large CSV-files are one example where this library could be used.
+The library is lightweight, so it can be used if there is no possibility to use heavy frameworks or databases.
 
-Contains following utils:
+Contains the following utils:
 
 - insertion at an arbitrary position in the file
 - reading text lines from the end or start of the file
@@ -22,41 +22,40 @@ Contains following utils:
 #### MergeSort:
 ```kotlin
 fun sort(
-    source: Path,
-    target: Path,
-    comparator: Comparator<String>,
-    delimiter: String,
-    allocatedMemorySizeInBytes: Int,
-    controlDiskspace: Boolean,
-    charset: Charset,
-    coroutineContext: CoroutineContext,
+    source: Path,                       // existing regular file
+    target: Path,                       // result file, must not exist
+    comparator: Comparator<String>,     // to compare lines, by default lexicographically
+    delimiter: String,                  // default: `\n`
+    allocatedMemorySizeInBytes: Int,    // the approximate allowed memory consumption
+    controlDiskspace: Boolean,          // if `true` source file will be truncated while process
+    charset: Charset,                   // default: UTF8
+    coroutineContext: CoroutineContext, // default: Dispatchers.IO
 )
 ```
 #### BinarySearch:
 ```kotlin
 fun binarySearch(
-    source: Path,
-    searchLine: String,
-    buffer: ByteBuffer,
-    charset: Charset,
-    delimiter: String,
-    comparator: Comparator<String>,
-    maxOfLinesPerBlock: Int,
-    maxLineLengthInBytes: Int,
+    source: Path,                       // existing regular file
+    searchLine: String,                 // pattern to search
+    buffer: ByteBuffer,                 // to be used while reading data from file
+    charset: Charset,                   // default: UTF8   
+    delimiter: String,                  // default: `\n`
+    comparator: Comparator<String>,     // to compare lines, by default lexicographically
+    maxOfLinesPerBlock: Int,            // maximum number of lines in a paragraph 
+    maxLineLengthInBytes: Int,          // maximum length of line
 ): Pair<Long, List<String>>
 ```
 
 #### Available via [jitpack](https://jitpack.io/#DataFabricRus/textfile-utils):
 ```kotlin
-allprojects {
-    repositories {
-        ...
-        maven { url 'https://jitpack.io' }
-    }
+repositories {
+    ...
+    maven(url = "https://jitpack.io")
 }
 
+
 dependencies {
-    implementation 'com.github.DataFabricRus:textfile-utils:1.0-SNAPSHOT'
+    implementation("com.github.DataFabricRus:textfile-utils:{{latest_version}}")
 }
 ```
 
