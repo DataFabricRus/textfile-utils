@@ -376,7 +376,6 @@ internal class MergeSortTest {
             allocatedMemorySizeInBytes = source.fileSize().toInt(),
         )
         val actual = target.readText(Charsets.UTF_8)
-        println(actual)
         val expected = """
             #_008a7b89-bc8d-4a93-8e0f-4307f018d6f7|D
             #_008ee688-e4f7-4be7-afa0-5d25c309d7aa|E
