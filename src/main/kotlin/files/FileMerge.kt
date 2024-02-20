@@ -6,6 +6,11 @@ import cc.datafabric.textfileutils.iterators.byteArrayStringComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.mergeIterators
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.plus
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
 import java.nio.charset.Charset
@@ -41,6 +46,7 @@ import kotlin.math.min
  * this allows saving diskspace, but it takes more time
  * @param [charset][Charset]
  * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
+ * @param [coroutineScope][CoroutineScope]
  */
 fun mergeFilesInverse(
     sources: Set<Path>,
@@ -51,6 +57,7 @@ fun mergeFilesInverse(
     allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
     writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
     controlDiskspace: Boolean = false,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
 ) = mergeFilesInverse(
     sources = sources,
     target = target,
@@ -60,6 +67,7 @@ fun mergeFilesInverse(
     allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
     writeToTotalMemRatio = writeToTotalMemRatio,
     controlDiskspace = controlDiskspace,
+    coroutineScope = coroutineScope,
 )
 
 /**
@@ -87,6 +95,7 @@ fun mergeFilesInverse(
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace, but it takes more time
  * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
+ * @param [coroutineScope][CoroutineScope]
  */
 fun mergeFilesInverse(
     sources: Set<Path>,
@@ -97,6 +106,7 @@ fun mergeFilesInverse(
     allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
     writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
     controlDiskspace: Boolean = false,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
     require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0)
@@ -122,6 +132,7 @@ fun mergeFilesInverse(
         sourceBuffer = { checkNotNull(sourceBuffers[it]) },
         targetBuffer = { writeBuffer },
         controlDiskspace = controlDiskspace,
+        coroutineScope = coroutineScope,
     )
 }
 
@@ -143,6 +154,7 @@ fun mergeFilesInverse(
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace
  * @param [charset][Charset]
+ * @param [coroutineScope][CoroutineScope]
  */
 fun mergeFilesInverse(
     sources: Set<Path>,
@@ -153,6 +165,7 @@ fun mergeFilesInverse(
     sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     controlDiskspace: Boolean = false,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
 ) = mergeFilesInverse(
     sources = sources,
     target = target,
@@ -162,6 +175,7 @@ fun mergeFilesInverse(
     sourceBuffer = sourceBuffer,
     targetBuffer = targetBuffer,
     controlDiskspace = controlDiskspace,
+    coroutineScope = coroutineScope,
 )
 
 /**
@@ -182,6 +196,7 @@ fun mergeFilesInverse(
  * @param [targetBuffer] get [ByteBuffer] for writ operations, the number of bytes must be greater than 2
  * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace
+ * @param coroutineScope[CoroutineScope]
  */
 fun mergeFilesInverse(
     sources: Set<Path>,
@@ -192,6 +207,7 @@ fun mergeFilesInverse(
     sourceBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     targetBuffer: (Path) -> ByteBuffer = { ByteBuffer.allocateDirect(MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES) },
     controlDiskspace: Boolean = false,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse"),
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must be greater than 1" }
     val readBuffers = sources.associateWith { file ->
@@ -223,8 +239,12 @@ fun mergeFilesInverse(
                     buffer = readBuffer,
                     delimiter = delimiter,
                     bomSymbolsLength = bomSymbols.size,
-                    coroutineName = "LeftLinesReader[$file]",
+                    coroutineScope = coroutineScope,
                     internalQueueSize = LINE_READER_INTERNAL_QUEUE_SIZE,
+                    onError = {
+                        source.values.closeAll()
+                        coroutineScope.cancel("error while read lines; cancel $coroutineScope", it)
+                    }
                 )
             }
             if (bomSymbols.isNotEmpty()) {
