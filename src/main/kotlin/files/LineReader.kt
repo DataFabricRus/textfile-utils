@@ -16,7 +16,6 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
 
@@ -33,12 +32,12 @@ import kotlin.math.min
  * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
  * @param [delimiter] lines-separator; default `\n`
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
- * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
- * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
  * @param [maxLineLengthInBytes][Int] line restriction,
  * to avoid memory lack when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
+ * @param [coroutineScope][CoroutineScope] the coroutine scope where the physical (NIO) reading is processed,
+ * to be used for async reader
  * @return [ResourceIterator]<[String]> of lines starting from the end of segment to the beginning
  * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */
@@ -53,8 +52,8 @@ fun SeekableByteChannel.readLines(
     charset: Charset = Charsets.UTF_8,
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
-    coroutineName: String = "AsyncLineReader",
-    coroutineContext: CoroutineContext = Dispatchers.IO,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("AsyncLineReader"),
+    onError: (Throwable) -> Unit = {},
 ): ResourceIterator<String> = readLines(
     startAreaPositionInclusive = startAreaPositionInclusive,
     endAreaPositionExclusive = endAreaPositionExclusive,
@@ -66,8 +65,8 @@ fun SeekableByteChannel.readLines(
     maxLineLengthInBytes = maxLineLengthInBytes,
     singleOperationTimeoutInMs = singleOperationTimeoutInMs,
     internalQueueSize = internalQueueSize,
-    coroutineName = coroutineName,
-    coroutineContext = coroutineContext,
+    coroutineScope = coroutineScope,
+    onError = onError,
 ).map { it.toString(charset) }
 
 /**
@@ -90,8 +89,8 @@ fun SeekableByteChannel.readLines(
  * to avoid memory lack when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
- * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
- * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
+ * @param [coroutineScope][CoroutineScope] the coroutine scope where the physical (NIO) reading is processed,
+ * to be used for async reader
  * @return [ResourceIterator]<[String]> of lines starting from the end of segment to the beginning
  * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
  */
@@ -106,8 +105,8 @@ fun SeekableByteChannel.readLines(
     maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
-    coroutineName: String = "AsyncLineReader",
-    coroutineContext: CoroutineContext = Dispatchers.IO,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("AsyncLineReader"),
+    onError: (Throwable) -> Unit = {},
 ): ResourceIterator<ByteArray> {
     require(buffer.capacity() > 0)
     require(delimiter.isNotEmpty())
@@ -145,6 +144,7 @@ fun SeekableByteChannel.readLines(
             }.asResourceIterator()
         }
     }
+
     return asyncReadByteLines(
         startAreaPositionInclusive = startAreaPositionInclusive + bomSymbolsLength,
         endAreaPositionExclusive = endAreaPositionExclusive,
@@ -155,8 +155,8 @@ fun SeekableByteChannel.readLines(
         maxLineLengthInBytes = maxLineLengthInBytes,
         singleOperationTimeoutInMs = singleOperationTimeoutInMs,
         internalQueueSize = internalQueueSize,
-        coroutineName = coroutineName,
-        coroutineContext = coroutineContext,
+        coroutineScope = coroutineScope,
+        onError = onError,
     )
 }
 
@@ -180,13 +180,13 @@ fun SeekableByteChannel.readLines(
  * @param [buffer][ByteBuffer] to use while reading data from file; default `8192`; for IO `DirectByteBuffer` is most appropriate
  * @param [delimiter] lines-separator; default `\n`
  * @param [listener] callback to monitor the process that accepts current position (index); no listener by default
- * @param [coroutineName] the name of coroutine which processes physical (NIO) reading, to be used for async reader
- * @param [coroutineContext][CoroutineContext] to run async reader, default = [Dispatchers.IO]
  * @param [maxLineLengthInBytes][Int] line restriction, to avoid memory lack e.g., when there is no delimiter, default = `8192`
  * @param [singleOperationTimeoutInMs][Long] to prevent hangs
  * @param [internalQueueSize][Int] to hold lines before emitting
  * @return [ResourceIterator]<[ByteArray]> of lines starting from the end of segment to the beginning
  * @throws [IllegalStateException] if line exceeds [maxLineLengthInBytes]
+ * @param [coroutineScope][CoroutineScope] the coroutine scope where the physical (NIO) reading is processed,
+ * to be used for async reader
  */
 fun SeekableByteChannel.asyncReadByteLines(
     startAreaPositionInclusive: Long = 0,
@@ -198,8 +198,8 @@ fun SeekableByteChannel.asyncReadByteLines(
     maxLineLengthInBytes: Int = MAX_LINE_LENGTH_IN_BYTES,
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
-    coroutineName: String = "AsyncLineReader",
-    coroutineContext: CoroutineContext = Dispatchers.IO,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("asyncReadByteLines"),
+    onError: (Throwable) -> Unit = {}
 ): ResourceIterator<ByteArray> {
     val reader = AsyncLineReader(
         source = this,
@@ -213,8 +213,12 @@ fun SeekableByteChannel.asyncReadByteLines(
         maxLineLength = maxLineLengthInBytes,
         queueSize = internalQueueSize,
     )
-    (CoroutineScope(coroutineContext) + CoroutineName(coroutineName)).launch {
-        reader.run()
+    coroutineScope.launch {
+        try {
+            reader.run()
+        } catch (ex: Exception) {
+            onError(ex)
+        }
     }
     return reader.lines()
 }
@@ -340,9 +344,13 @@ class AsyncLineReader internal constructor(
     fun run() {
         try {
             if (direct) directRead {
-                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS)) {
+                    "timeout exceeded $itemTimeoutInMs ms (query-size: ${queue.size})"
+                }
             } else reverseRead {
-                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS))
+                check(queue.offer(it, itemTimeoutInMs, TimeUnit.MILLISECONDS)) {
+                    "timeout exceeded $itemTimeoutInMs ms (query-size: ${queue.size})"
+                }
             }
         } catch (ex: Throwable) {
             error.set(ex)

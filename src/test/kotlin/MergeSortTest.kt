@@ -11,7 +11,10 @@ import cc.datafabric.textfileutils.iterators.byteArrayPrefixSimpleComparator
 import cc.datafabric.textfileutils.iterators.defaultComparator
 import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import cc.datafabric.textfileutils.iterators.toStringComparator
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -175,35 +178,33 @@ internal class MergeSortTest {
         }
 
     @Test
-    fun `test sort small file`(@TempDir dir: Path): Unit = runBlocking {
+    fun `test sort small file`(@TempDir dir: Path): Unit = runBlocking(Dispatchers.Default) {
         testSortRelativelySmallFile(
             dir = dir,
             charset = Charsets.UTF_32LE,
             delimiter = ":::",
             deleteSourceFile = true,
             comparator = defaultComparator(),
-            context = Dispatchers.Default,
             lines = 420,
             inMemory = true,
         )
     }
 
     @Test
-    fun `test sort big file`(@TempDir dir: Path): Unit = runBlocking {
+    fun `test sort big file`(@TempDir dir: Path): Unit = runBlocking(Dispatchers.IO) {
         testSortRelativelySmallFile(
             dir = dir,
             charset = Charsets.UTF_32,
             delimiter = "\n",
             deleteSourceFile = false,
             comparator = defaultComparator<String>().reversed(),
-            context = Dispatchers.IO,
             lines = 42424, // ~6MB
             inMemory = false,
         )
     }
 
     @Test
-    fun `test suspended sort large file`(@TempDir dir: Path): Unit = runBlocking {
+    fun `test suspended sort large file`(@TempDir dir: Path): Unit = runBlocking(Dispatchers.IO) {
         val numLines = 200_000
         val numDuplicates = 10_000
         val source = generateLargeFile(numLines, numDuplicates) {
@@ -226,7 +227,6 @@ internal class MergeSortTest {
             controlDiskspace = true,
             charset = Charsets.UTF_8,
             allocatedMemorySizeInBytes = allocatedMemory,
-            coroutineContext = Dispatchers.IO,
             comparator = comparator,
         )
 
@@ -398,7 +398,6 @@ internal class MergeSortTest {
         charset: Charset,
         delimiter: String,
         deleteSourceFile: Boolean,
-        context: CoroutineContext,
         comparator: Comparator<String>,
         inMemory: Boolean,
         lines: Int,
@@ -421,7 +420,6 @@ internal class MergeSortTest {
             controlDiskspace = deleteSourceFile,
             charset = charset,
             allocatedMemorySizeInBytes = allocatedMemory,
-            coroutineContext = context,
             comparator = comparator,
         )
 
@@ -468,7 +466,7 @@ internal class MergeSortTest {
             bomSymbols = charset.bomSymbols(),
             allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
             controlDiskspace = true,
-            coroutineContext = coroutineContext,
+            coroutineScope = CoroutineScope(coroutineContext) + CoroutineName("test-split-and-sort"),
         )
 
         Assertions.assertTrue(parts.size > 1)
@@ -483,7 +481,7 @@ internal class MergeSortTest {
         Assertions.assertFalse(source.exists())
     }
 
-    fun testDefaultSortResourceFile(dir: Path, resource: String) {
+    private fun testDefaultSortResourceFile(dir: Path, resource: String) {
         val charset = Charsets.UTF_8
         val givenContent =
             MergeSortTest::class.java.getResourceAsStream(resource)!!.bufferedReader(charset).readText()

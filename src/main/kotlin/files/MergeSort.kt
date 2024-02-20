@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -22,6 +23,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import kotlin.io.path.createFile
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.deleteIfExists
@@ -121,7 +123,6 @@ fun blockingSort(
         allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
         controlDiskspace = controlDiskspace,
         charset = charset,
-        coroutineContext = coroutineContext
     )
 }
 
@@ -169,7 +170,6 @@ fun blockingSort(
         bomSymbols = bomSymbols,
         allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
         controlDiskspace = controlDiskspace,
-        coroutineContext = coroutineContext
     )
 }
 
@@ -196,7 +196,6 @@ fun blockingSort(
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
  * this allows saving diskspace, but the whole process will take will require more time
  * @param [charset][Charset]
- * @param [coroutineContext][CoroutineContext]
  */
 suspend fun suspendSort(
     source: Path,
@@ -206,7 +205,6 @@ suspend fun suspendSort(
     allocatedMemorySizeInBytes: Int = SORT_FILE_DEFAULT_MEMORY_ALLOCATION_IN_BYTES,
     controlDiskspace: Boolean = false,
     charset: Charset = Charsets.UTF_8,
-    coroutineContext: CoroutineContext = Dispatchers.IO,
 ) = suspendSort(
     source = source,
     target = target,
@@ -214,7 +212,6 @@ suspend fun suspendSort(
     delimiter = delimiter.bytes(charset), bomSymbols = charset.bomSymbols(),
     allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
     controlDiskspace = controlDiskspace,
-    coroutineContext = coroutineContext
 )
 
 /**
@@ -240,7 +237,6 @@ suspend fun suspendSort(
  * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
  * this allows saving diskspace, but the whole process will take will require more time
- * @param [coroutineContext][CoroutineContext]
  */
 suspend fun suspendSort(
     source: Path,
@@ -250,7 +246,6 @@ suspend fun suspendSort(
     bomSymbols: ByteArray = byteArrayOf(),
     allocatedMemorySizeInBytes: Int = SORT_FILE_DEFAULT_MEMORY_ALLOCATION_IN_BYTES,
     controlDiskspace: Boolean = false,
-    coroutineContext: CoroutineContext = Dispatchers.IO,
 ) {
     require(source.exists()) { "The source file <$source> does not exist" }
     require(source.isRegularFile()) { "The source <$source> is not a file" }
@@ -263,16 +258,18 @@ suspend fun suspendSort(
         require(!sameFilePaths(source, target)) { "Control diskspace = true, but source = target (<$source>)" }
     }
 
+    val coroutineScope = CoroutineScope(coroutineContext) + CoroutineName("suspendSort")
+
     if (source.fileSize() <= 5 * allocatedMemorySizeInBytes / 2) { // small file, memory
         val writeBuffer = ByteBuffer.allocateDirect(source.fileSize().toInt())
         val readBuffer = ByteBuffer.allocateDirect(allocatedMemorySizeInBytes / 2)
         val content = source.use { input ->
             input.readLinesBytes(
                 controlDiskSpace = controlDiskspace,
-                coroutineContext = coroutineContext,
                 delimiterBytes = delimiter,
                 bomSymbols = bomSymbols,
                 buffer = readBuffer,
+                coroutineScope = coroutineScope,
             ).toList().toTypedArray()
         }
         writeLines(
@@ -300,7 +297,7 @@ suspend fun suspendSort(
                 bomSymbols = bomSymbols,
                 allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
                 controlDiskspace = controlDiskspace,
-                coroutineContext = coroutineContext,
+                coroutineScope = coroutineScope,
             )
         )
         if (parts.isNotEmpty()) {
@@ -312,6 +309,7 @@ suspend fun suspendSort(
                 bomSymbols = bomSymbols,
                 allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
                 controlDiskspace = controlDiskspace,
+                coroutineScope = coroutineScope,
             )
         }
     } finally {
@@ -331,19 +329,20 @@ suspend fun suspendSort(
  * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
  * @param [controlDiskspace] if `true` source file will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace, but the whole process will take will require more time
- * @param [coroutineContext][CoroutineContext]
+ * @param [coroutineScope][CoroutineScope]
  * @param [numOfWriteWorkers] number of coroutines that will handle write operations
  * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
  * @return [List]<[Path]> parts of source file with sorted content
  */
+@Suppress("DuplicatedCode")
 internal suspend fun suspendSplitAndSort(
     source: Path,
+    coroutineScope: CoroutineScope,
     comparator: Comparator<ByteArray> = byteArraySimpleComparator(),
     delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
     bomSymbols: ByteArray = byteArrayOf(),
     allocatedMemorySizeInBytes: Int = SORT_FILE_DEFAULT_MEMORY_ALLOCATION_IN_BYTES,
     controlDiskspace: Boolean = false,
-    coroutineContext: CoroutineContext = Dispatchers.IO,
     numOfWriteWorkers: Int = SORT_FILE_NUMBER_OF_WRITE_WORKERS,
     writeToTotalMemRatio: Double = SORT_FILE_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
 ): List<Path> {
@@ -363,8 +362,6 @@ internal suspend fun suspendSplitAndSort(
     val writeBuffers = ArrayBlockingQueue<ByteBuffer>(numOfWriteWorkers)
     writeBuffers.add(ByteBuffer.allocateDirect(chunkSize))
 
-    val coroutineScope = CoroutineScope(coroutineContext) + CoroutineName("Writers[${source.fileName}]")
-
     val lines = arrayListOf<ByteArray>()
     var chunkPosition = source.fileSize() - chunkSize
     var linePosition = source.fileSize()
@@ -378,7 +375,7 @@ internal suspend fun suspendSplitAndSort(
         source.use { input ->
             input.readLinesBytes(
                 controlDiskSpace = controlDiskspace,
-                coroutineContext = coroutineContext,
+                coroutineScope = coroutineScope,
                 delimiterBytes = delimiter,
                 bomSymbols = bomSymbols,
                 buffer = readBuffer,
@@ -388,10 +385,11 @@ internal suspend fun suspendSplitAndSort(
                     chunkPosition = prevLinePosition - chunkSize
                     val linesSnapshot = lines.toTypedArray()
                     lines.clear()
+                    val file = source + ".${fileCounter++}.part"
                     writers.add(
                         coroutineScope.writeJob(
                             content = linesSnapshot.sort(comparator),
-                            target = res.put(source + ".${fileCounter++}.part"),
+                            target = res.add(file).let { file },
                             delimiterBytes = delimiter,
                             bomSymbols = bomSymbols,
                             buffers = writeBuffers,
@@ -406,10 +404,11 @@ internal suspend fun suspendSplitAndSort(
         if (lines.isNotEmpty()) {
             val linesSnapshot = lines.toTypedArray()
             lines.clear()
+            val file = source + ".${fileCounter++}.part"
             writers.add(
                 coroutineScope.writeJob(
                     content = linesSnapshot.sort(comparator),
-                    target = res.put(source + ".${fileCounter++}.part"),
+                    target = res.add(file).let { file },
                     delimiterBytes = delimiter,
                     bomSymbols = bomSymbols,
                     buffers = writeBuffers,
@@ -445,10 +444,11 @@ internal fun calcChunkSize(totalSize: Long, maxChunkSize: Int): Int {
 
 private fun SeekableByteChannel.readLinesBytes(
     controlDiskSpace: Boolean = false,
-    coroutineContext: CoroutineContext = Dispatchers.IO,
     delimiterBytes: ByteArray,
     bomSymbols: ByteArray,
     buffer: ByteBuffer,
+    coroutineScope: CoroutineScope,
+    onError: (Throwable) -> Unit = {},
 ): ResourceIterator<ByteArray> = asyncReadByteLines(
     startAreaPositionInclusive = bomSymbols.size.toLong(),
     endAreaPositionExclusive = size(),
@@ -461,8 +461,8 @@ private fun SeekableByteChannel.readLinesBytes(
     direct = false,
     buffer = buffer,
     maxLineLengthInBytes = buffer.capacity(),
-    coroutineName = "MergeSortReader",
-    coroutineContext = coroutineContext
+    coroutineScope = coroutineScope,
+    onError = onError,
 )
 
 private fun CoroutineScope.writeJob(
@@ -471,8 +471,12 @@ private fun CoroutineScope.writeJob(
     delimiterBytes: ByteArray,
     bomSymbols: ByteArray,
     buffers: BlockingQueue<ByteBuffer>
-): Job = (this + CoroutineName("Writer[${target.fileName}]")).launch {
-    writeLines(content, target, delimiterBytes, bomSymbols, buffers)
+): Job = this.launch {
+    try {
+        writeLines(content, target, delimiterBytes, bomSymbols, buffers)
+    } catch (ex: Exception) {
+        this.cancel("Exception while write lines", ex)
+    }
 }
 
 private fun writeLines(
@@ -516,11 +520,6 @@ private fun writeLines(
     target.use(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW) {
         it.write(buffer)
     }
-}
-
-private fun <X> MutableCollection<X>.put(item: X): X {
-    add(item)
-    return item
 }
 
 private fun Array<ByteArray>.sort(comparator: Comparator<ByteArray>): Array<ByteArray> {
