@@ -9,7 +9,6 @@ import cc.datafabric.textfileutils.iterators.toByteArrayComparator
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.plus
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -179,7 +178,7 @@ fun mergeFilesInverse(
 )
 
 /**
- * Merges two files into a single one with fixed allocation.
+ * Merges two files into a single one with fixed memory allocation.
  * Source files must be sorted.
  * Files are read from end to beginning, so [comparator] should have reverse order: `(a, b) -> b.compareTo(a)`.
  * The target file content will be in inverse order:
@@ -210,6 +209,10 @@ fun mergeFilesInverse(
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse"),
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must be greater than 1" }
+    val lineReaderInternalQueueSize = LINE_READER_INTERNAL_QUEUE_SIZE / sources.size
+    require(lineReaderInternalQueueSize >= 1) {
+        "Number of given sources (${sources.size}) must be less than $LINE_READER_INTERNAL_QUEUE_SIZE"
+    }
     val readBuffers = sources.associateWith { file ->
         val buffer = sourceBuffer(file)
         require(buffer.capacity() >= MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES) {
@@ -227,11 +230,12 @@ fun mergeFilesInverse(
     target.use { res ->
         sources.use { source ->
             var firstLine = true
-            val inputs = source.map { (file, channel) ->
+            val iterators = mutableListOf<ResourceIterator<ByteArray>>()
+            source.forEach { (file, channel) ->
                 val segmentSize = checkNotNull(segmentSizes[file])
                 val readBuffer = checkNotNull(readBuffers[file])
 
-                file to channel.readLines(
+                val iterator = channel.readLines(
                     direct = false,
                     startAreaPositionInclusive = 0,
                     endAreaPositionExclusive = segmentSize.get(),
@@ -240,17 +244,18 @@ fun mergeFilesInverse(
                     delimiter = delimiter,
                     bomSymbolsLength = bomSymbols.size,
                     coroutineScope = coroutineScope,
-                    internalQueueSize = LINE_READER_INTERNAL_QUEUE_SIZE,
+                    internalQueueSize = lineReaderInternalQueueSize,
                     onError = {
-                        source.values.closeAll()
-                        coroutineScope.cancel("error while read lines; cancel $coroutineScope", it)
+                        iterators.closeAll(it)
+                        throw it
                     }
                 )
+                iterators.add(iterator)
             }
             if (bomSymbols.isNotEmpty()) {
                 res.write(ByteBuffer.wrap(bomSymbols))
             }
-            inputs.map { it.second }.use {
+            iterators.use {
                 mergeIterators(this, comparator).forEach { line ->
                     if (!firstLine) {
                         res.writeData(delimiter, writeBuffer)
