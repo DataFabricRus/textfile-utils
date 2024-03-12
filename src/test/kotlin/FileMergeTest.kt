@@ -1,7 +1,17 @@
 package cc.datafabric.textfileutils
 
+import cc.datafabric.textfileutils.files.MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES
+import cc.datafabric.textfileutils.files.MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO
+import cc.datafabric.textfileutils.files.bomSymbols
+import cc.datafabric.textfileutils.files.bytes
 import cc.datafabric.textfileutils.files.invert
 import cc.datafabric.textfileutils.files.mergeFilesInverse
+import cc.datafabric.textfileutils.iterators.defaultComparator
+import cc.datafabric.textfileutils.iterators.toByteArrayComparator
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.plus
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -18,7 +28,29 @@ internal class FileMergeTest {
 
     companion object {
 
-        fun mergeFiles(
+        fun mergeTextFilesInverse(
+            sources: Set<Path>,
+            target: Path,
+            comparator: Comparator<String> = defaultComparator<String>().reversed(),
+            delimiter: String = "\n",
+            charset: Charset = Charsets.UTF_8,
+            allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
+            writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
+            controlDiskspace: Boolean = false,
+            coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
+        ) = mergeFilesInverse(
+            sources = sources,
+            target = target,
+            comparator = comparator.toByteArrayComparator(charset),
+            delimiter = delimiter.bytes(charset),
+            bomSymbols = charset.bomSymbols(),
+            allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+            writeToTotalMemRatio = writeToTotalMemRatio,
+            controlDiskspace = controlDiskspace,
+            coroutineScope = coroutineScope,
+        )
+
+        fun mergeFilesInverseAndInvert(
             leftSource: Path,
             rightSource: Path,
             target: Path,
@@ -29,7 +61,7 @@ internal class FileMergeTest {
             charset: Charset = Charsets.UTF_8,
         ) {
             val tmp = Files.createFile(Paths.get(target.toAbsolutePath().toString() + ".tmp"))
-            mergeFilesInverse(
+            mergeTextFilesInverse(
                 sources = setOf(leftSource, rightSource),
                 target = tmp,
                 comparator = comparator,
@@ -59,7 +91,7 @@ internal class FileMergeTest {
         left.writeText(leftContent.joinToString(", "))
         right.writeText(rightContent.joinToString(", "))
 
-        mergeFiles(
+        mergeFilesInverseAndInvert(
             leftSource = left,
             rightSource = right,
             target = res,
@@ -86,7 +118,7 @@ internal class FileMergeTest {
         left.writeText(leftContent.joinToString("\n"))
         right.writeText(rightContent.joinToString("\n"))
 
-        mergeFiles(
+        mergeFilesInverseAndInvert(
             leftSource = left,
             rightSource = right,
             target = res,
@@ -113,7 +145,7 @@ internal class FileMergeTest {
         left.writeText(leftContent.joinToString("\n"), Charsets.ISO_8859_1)
         right.writeText(rightContent.joinToString("\n"), Charsets.ISO_8859_1)
 
-        mergeFiles(
+        mergeFilesInverseAndInvert(
             leftSource = left,
             rightSource = right,
             target = res,
@@ -146,7 +178,7 @@ internal class FileMergeTest {
             source
         }.toSet()
 
-        mergeFilesInverse(
+        mergeTextFilesInverse(
             sources = sources,
             target = target,
             comparator = Comparator<String> { a, b -> a.toInt().compareTo(b.toInt()) }.reversed(),
