@@ -53,7 +53,7 @@ fun SeekableByteChannel.readLines(
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("AsyncLineReader"),
-    onError: (Throwable) -> Unit = {},
+    onError: (Throwable) -> Unit = { throw it },
 ): ResourceIterator<String> = readLines(
     startAreaPositionInclusive = startAreaPositionInclusive,
     endAreaPositionExclusive = endAreaPositionExclusive,
@@ -106,7 +106,7 @@ fun SeekableByteChannel.readLines(
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("AsyncLineReader"),
-    onError: (Throwable) -> Unit = {},
+    onError: (Throwable) -> Unit = { throw it },
 ): ResourceIterator<ByteArray> {
     require(buffer.capacity() > 0)
     require(delimiter.isNotEmpty())
@@ -199,7 +199,7 @@ fun SeekableByteChannel.asyncReadByteLines(
     singleOperationTimeoutInMs: Long = LINE_READER_SINGLE_OPERATION_TIMEOUT_IN_MS,
     internalQueueSize: Int = LINE_READER_INTERNAL_QUEUE_SIZE,
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("asyncReadByteLines"),
-    onError: (Throwable) -> Unit = {}
+    onError: (Throwable) -> Unit = { throw it }
 ): ResourceIterator<ByteArray> {
     val reader = AsyncLineReader(
         source = this,

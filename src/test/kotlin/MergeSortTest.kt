@@ -204,34 +204,15 @@ internal class MergeSortTest {
     }
 
     @Test
-    fun `test suspended sort large file`(@TempDir dir: Path): Unit = runBlocking(Dispatchers.IO) {
-        val numLines = 200_000
-        val numDuplicates = 10_000
-        val source = generateLargeFile(numLines, numDuplicates) {
-            Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
-        }
-        val target = Paths.get(source.toString().replace("-source-", "-target-"))
-
-        val fileSize = source.fileSize()
-        val allocatedMemory = fileSize.toInt() / 3
-        val comparator = Comparator<String> { left, right ->
-            val a = left.substringBefore("::")
-            val b = right.substringBefore("::")
-            a.compareTo(b)
+    fun `test suspended sort large file with big mem allocation`(@TempDir dir: Path): Unit =
+        runBlocking(Dispatchers.IO) {
+            testSuspendSortLargeFile(dir = dir, numLines = 200_000, numDuplicates = 10_000, numberOfParts = 4)
         }
 
-        suspendSort(
-            source = source,
-            target = target,
-            delimiter = "\n",
-            controlDiskspace = true,
-            charset = Charsets.UTF_8,
-            allocatedMemorySizeInBytes = allocatedMemory,
-            comparator = comparator,
-        )
-
-        checkIsSorted(target, comparator, numLines + numDuplicates)
-        Assertions.assertEquals(fileSize, target.fileSize())
+    @Test
+    fun `test suspended sort large file with small mem allocation`(@TempDir dir: Path): Unit =
+        runBlocking(Dispatchers.IO) {
+            testSuspendSortLargeFile(dir = dir, numLines = 10_000, numDuplicates = 5_000, numberOfParts = 90)
     }
 
     @Test
@@ -498,6 +479,39 @@ internal class MergeSortTest {
 
         val actual = target.readText(charset).split("\n")
         Assertions.assertEquals(expected, actual)
+    }
+
+    private suspend fun testSuspendSortLargeFile(
+        dir: Path,
+        numLines: Int = 200_000,
+        numDuplicates: Int = 10_000,
+        numberOfParts: Int = 3,
+    ) {
+        val source = generateLargeFile(numLines, numDuplicates) {
+            Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
+        }
+        val target = Paths.get(source.toString().replace("-source-", "-target-"))
+
+        val fileSize = source.fileSize()
+        val allocatedMemory = fileSize.toInt() / numberOfParts
+        val comparator = Comparator<String> { left, right ->
+            val a = left.substringBefore("::")
+            val b = right.substringBefore("::")
+            a.compareTo(b)
+        }
+
+        suspendSort(
+            source = source,
+            target = target,
+            delimiter = "\n",
+            controlDiskspace = true,
+            charset = Charsets.UTF_8,
+            allocatedMemorySizeInBytes = allocatedMemory,
+            comparator = comparator,
+        )
+
+        checkIsSorted(target, comparator, numLines + numDuplicates)
+        Assertions.assertEquals(fileSize, target.fileSize())
     }
 
 }

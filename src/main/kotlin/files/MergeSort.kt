@@ -147,7 +147,8 @@ fun blockingSort(
  * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
  * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
- * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
+ * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES];
+ * the higher memory allocation, the faster the processing
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
  * this allows saving diskspace, but the whole process will take will require more time
  * @param [coroutineContext][CoroutineContext]
@@ -234,7 +235,10 @@ suspend fun suspendSort(
  * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
  * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
  * @param [allocatedMemorySizeInBytes][Int] the approximate allowed memory consumption;
- * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES]
+ * must not be less than [SORT_FILE_MIN_MEMORY_ALLOCATION_IN_BYTES];
+ * the higher memory allocation, the faster the processing:
+ * if this number is small but the file is large,
+ * then many temporary files are expected and merging them will take a long time.
  * @param [controlDiskspace] if `true` source file will be truncated while process and completely deleted at the end of it;
  * this allows saving diskspace, but the whole process will take will require more time
  */
@@ -448,7 +452,7 @@ private fun SeekableByteChannel.readLinesBytes(
     bomSymbols: ByteArray,
     buffer: ByteBuffer,
     coroutineScope: CoroutineScope,
-    onError: (Throwable) -> Unit = {},
+    onError: (Throwable) -> Unit = { throw it },
 ): ResourceIterator<ByteArray> = asyncReadByteLines(
     startAreaPositionInclusive = bomSymbols.size.toLong(),
     endAreaPositionExclusive = size(),
