@@ -294,47 +294,122 @@ suspend fun suspendSort(
     tmpTarget.createFile()
     val parts = mutableSetOf<Path>()
     try {
-        parts.addAll(
-            suspendSplitAndSort(
+        if (controlDiskspace) {
+            parts.addAll(
+                suspendSplitAndSort(
+                    source = source,
+                    comparator = comparator.reversed(),
+                    delimiter = delimiter,
+                    bomSymbols = bomSymbols,
+                    allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                    controlDiskspace = true,
+                    coroutineScope = coroutineScope,
+                )
+            )
+            mergeInverseParts(
+                parts = parts,
                 source = source,
-                comparator = comparator.reversed(),
+                target = tmpTarget,
+                comparator = comparator,
                 delimiter = delimiter,
                 bomSymbols = bomSymbols,
+                numberOfOpenDescriptors = numberOfOpenDescriptors,
                 allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
-                controlDiskspace = controlDiskspace,
                 coroutineScope = coroutineScope,
             )
-        )
-        mergeInverseParts(
-            parts = parts,
-            source = source,
-            tmpTarget = tmpTarget,
-            comparator = comparator,
-            delimiter = delimiter,
-            bomSymbols = bomSymbols,
-            controlDiskspace = controlDiskspace,
-            numberOfOpenDescriptors = numberOfOpenDescriptors,
-            allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
-            coroutineScope = coroutineScope,
-        )
+        } else {
+            parts.addAll(
+                suspendSplitAndSort(
+                    source = source,
+                    comparator = comparator,
+                    delimiter = delimiter,
+                    bomSymbols = bomSymbols,
+                    allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                    controlDiskspace = false,
+                    coroutineScope = coroutineScope,
+                )
+            )
+            mergeDirectParts(
+                parts = parts,
+                source = source,
+                target = tmpTarget,
+                comparator = comparator,
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+                numberOfOpenDescriptors = numberOfOpenDescriptors,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                coroutineScope = coroutineScope,
+            )
+        }
     } finally {
         parts.deleteAll()
     }
     tmpTarget.moveTo(target = target, overwrite = true)
 }
 
-private fun mergeInverseParts(
+private fun mergeDirectParts(
     parts: MutableSet<Path>,
     source: Path,
-    tmpTarget: Path,
+    target: Path,
     comparator: Comparator<ByteArray>,
     delimiter: ByteArray,
     bomSymbols: ByteArray,
-    controlDiskspace: Boolean,
     numberOfOpenDescriptors: Int,
     allocatedMemorySizeInBytes: Int,
     coroutineScope: CoroutineScope,
 ) {
+    var fileCounter = parts.size
+    while (parts.isNotEmpty()) {
+        if (parts.size <= numberOfOpenDescriptors) {
+            mergeFilesDirect(
+                sources = parts,
+                target = target,
+                comparator = comparator,
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                coroutineScope = coroutineScope,
+            )
+            parts.deleteAll()
+            parts.clear()
+            return
+        }
+        val chunkSize = calcChunkSize(parts.size.toLong(), numberOfOpenDescriptors)
+        val fileGroups = parts.chunked(chunkSize).map { it.toSet() }
+        fileGroups.forEach { files ->
+            val targetFile = source + ("." + ++fileCounter + ".part")
+            targetFile.createFile()
+            mergeFilesDirect(
+                sources = files,
+                target = targetFile,
+                comparator = comparator,
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                coroutineScope = coroutineScope,
+            )
+            parts.add(targetFile)
+            files.deleteAll()
+            parts.removeAll(files)
+        }
+    }
+}
+
+private fun mergeInverseParts(
+    parts: MutableSet<Path>,
+    source: Path,
+    target: Path,
+    comparator: Comparator<ByteArray>,
+    delimiter: ByteArray,
+    bomSymbols: ByteArray,
+    numberOfOpenDescriptors: Int,
+    allocatedMemorySizeInBytes: Int,
+    coroutineScope: CoroutineScope,
+) {
+
+    //
+    // pseudocode:
+    //
     // while (true) {
     //  if (reversed.size == 1 && direct.isEmpty) {
     //      return reversed(invert[0])
@@ -356,7 +431,9 @@ private fun mergeInverseParts(
     //      reverse.add(res)
     //  }
     // }
+    //
 
+    val controlDiskspace = true
     val reversed = mutableSetOf<Path>()
     val direct = mutableSetOf<Path>()
     reversed.addAll(parts)
@@ -366,14 +443,14 @@ private fun mergeInverseParts(
             throw IllegalStateException("Should not happen")
         }
         if (reversed.isEmpty() && direct.size == 1) {
-            direct.single().moveTo(target = tmpTarget, overwrite = true)
+            direct.single().moveTo(target = target, overwrite = true)
             parts.removeAll(direct)
             break
         }
         if (reversed.size == 1 && direct.isEmpty()) {
             invert(
                 source = reversed.single(),
-                target = tmpTarget,
+                target = target,
                 controlDiskspace = controlDiskspace,
                 delimiter = delimiter,
                 bomSymbols = bomSymbols,

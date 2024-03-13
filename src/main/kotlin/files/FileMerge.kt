@@ -25,9 +25,11 @@ import kotlin.math.min
  * The [invert] method can be used to rewrite content in direct order.
  *
  * The method allocates `[allocatedMemorySizeInBytes] * [writeToTotalMemRatio]` bytes for write operation,
- * and `sourceFileSize{i} * [allocatedMemorySizeInBytes] * (1 - [writeToTotalMemRatio]) / sum (sourceFileSize{1} + ... sourceFileSize{N})` bytes for each read operation.
+ * and `sourceFileSize{i} * [allocatedMemorySizeInBytes] * (1 - [writeToTotalMemRatio]) / sum (sourceFileSize{1} + ... sourceFileSize{N})`
+ * bytes for each read operation.
  *
- * Note that total memory consumption is greater than [allocatedMemorySizeInBytes], since each operation requires some temporal data.
+ * Note that total memory consumption is greater than [allocatedMemorySizeInBytes],
+ * since each operation requires some temporal data.
  *
  * If [controlDiskspace] = `true` then source files will be truncated while process and completely deleted at the end of process.
  * When control diskspace is enabled, the method execution can take a long time.
@@ -44,6 +46,7 @@ import kotlin.math.min
  * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
  * @param [coroutineScope][CoroutineScope]
  */
+@Suppress("DuplicatedCode")
 fun mergeFilesInverse(
     sources: Set<Path>,
     target: Path,
@@ -56,7 +59,7 @@ fun mergeFilesInverse(
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
 ) {
     require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
-    require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0)
+    require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0) { "writeToTotalMemRatio must fall within the range of 0 to 1" }
 
     val writeBufferSize =
         max((allocatedMemorySizeInBytes * writeToTotalMemRatio).toInt(), MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES)
@@ -80,6 +83,68 @@ fun mergeFilesInverse(
         targetBuffer = { writeBuffer },
         controlDiskspace = controlDiskspace,
         coroutineScope = coroutineScope,
+    )
+}
+
+/**
+ * Merges files into single one with fixed memory allocation.
+ * Source files must be sorted.
+ * In opposite [mergeFilesInverse], files are read from the beginning to the end.
+ *
+ * The method allocates `[allocatedMemorySizeInBytes] * [writeToTotalMemRatio]` bytes for write operation,
+ * and `sourceFileSize{i} * [allocatedMemorySizeInBytes] * (1 - [writeToTotalMemRatio]) / sum (sourceFileSize{1} + ... sourceFileSize{N})`
+ * bytes for each read operation.
+ *
+ * Note that total memory consumption is greater than [allocatedMemorySizeInBytes],
+ * since each operation requires some temporal data.
+ *
+ * @param [sources][Set]<[Path]>
+ * @param [target][Path]
+ * @param [comparator][Comparator]<[ByteArray]>
+ * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
+ * @param [delimiter][String]
+ * @param [allocatedMemorySizeInBytes] = `chunkSizeSize + writeBufferSize + 2 * readBufferSize`, approximate memory consumption; number of bytes
+ * @param [writeToTotalMemRatio] ratio of memory allocated for write operations to [total allocated memory][allocatedMemorySizeInBytes]
+ * @param [coroutineScope][CoroutineScope]
+ */
+@Suppress("DuplicatedCode")
+fun mergeFilesDirect(
+    sources: Set<Path>,
+    target: Path,
+    comparator: Comparator<ByteArray> = byteArrayStringComparator().reversed(),
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    bomSymbols: ByteArray = byteArrayOf(),
+    allocatedMemorySizeInBytes: Int = 2 * MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES,
+    writeToTotalMemRatio: Double = MERGE_FILES_WRITE_BUFFER_TO_TOTAL_MEMORY_ALLOCATION_RATIO,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO) + CoroutineName("mergeFilesInverse")
+) {
+    require(sources.size > 1) { "Number of given sources (${sources.size}) must greater than 1" }
+    require(writeToTotalMemRatio > 0.0 && writeToTotalMemRatio < 1.0) { "writeToTotalMemRatio must fall within the range of 0 to 1" }
+
+    val writeBufferSize =
+        max((allocatedMemorySizeInBytes * writeToTotalMemRatio).toInt(), MERGE_FILES_MIN_WRITE_BUFFER_SIZE_IN_BYTES)
+    val readBuffersSize = max(allocatedMemorySizeInBytes - writeBufferSize, MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES)
+    val filesSize = sources.sumOf { it.fileSize() }
+    val readFilesSizeRatio = readBuffersSize.toDouble() / filesSize
+
+    val writeBuffer = ByteBuffer.allocateDirect(writeBufferSize)
+    val sourceBuffers = sources.associateWith { file ->
+        val size = max((readFilesSizeRatio * file.fileSize()).toInt(), MERGE_FILES_MIN_READ_BUFFER_SIZE_IN_BYTES)
+        ByteBuffer.allocateDirect(size)
+    }
+
+    mergeFiles(
+        sources = sources,
+        target = target,
+        comparator = comparator,
+        delimiter = delimiter,
+        bomSymbols = bomSymbols,
+        sourceBuffer = { checkNotNull(sourceBuffers[it]) },
+        targetBuffer = { writeBuffer },
+        controlDiskspace = false,
+        direct = true,
+        coroutineScope = coroutineScope
     )
 }
 

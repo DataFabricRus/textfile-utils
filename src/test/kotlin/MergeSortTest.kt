@@ -150,8 +150,8 @@ internal class MergeSortTest {
     }
 
     @Test
-    fun `test split and sort (small file, IO dispatcher, direct, UTF-8, new-line delimiter)`(@TempDir dir: Path) =
-        runBlocking(Dispatchers.IO) {
+    fun `test split and sort (small file, default dispatcher, direct, UTF-8, new-line delimiter)`(@TempDir dir: Path) =
+        runBlocking(Dispatchers.Default) {
             testSplitAndSort(
                 dir = dir,
                 content = (1..424).map { Random.nextInt().toString() },
@@ -164,8 +164,8 @@ internal class MergeSortTest {
         }
 
     @Test
-    fun `test split and sort (big file, default dispatcher, reverse, UTF-16, semicolon delimiter)`(@TempDir dir: Path) =
-        runBlocking(Dispatchers.Default) {
+    fun `test split and sort (big file, IO dispatcher, reverse, UTF-16, semicolon delimiter)`(@TempDir dir: Path) =
+        runBlocking(Dispatchers.IO) {
             testSplitAndSort(
                 dir = dir,
                 content = (1..424242).map { Random.nextDouble().toString() },
@@ -204,21 +204,40 @@ internal class MergeSortTest {
     }
 
     @Test
-    fun `test suspended sort large file with big mem allocation`(@TempDir dir: Path): Unit =
+    fun `test suspended sort large file with big mem allocation and control diskspace`(@TempDir dir: Path): Unit =
         runBlocking(Dispatchers.IO) {
             testSuspendSortLargeFile(
                 dir = dir,
                 numLines = 200_000,
                 numDuplicates = 10_000,
-                approximateNumberOfParts = 4
+                approximateNumberOfParts = 4,
+                controlDiskspace = true,
             )
         }
 
     @Test
-    fun `test suspended sort large file with small mem allocation`(@TempDir dir: Path): Unit =
+    fun `test suspended sort large file with small mem allocation and control diskspace`(@TempDir dir: Path): Unit =
         runBlocking(Dispatchers.IO) {
-            testSuspendSortLargeFile(dir = dir, numLines = 10_000, numDuplicates = 5_000, approximateNumberOfParts = 90)
-    }
+            testSuspendSortLargeFile(
+                dir = dir,
+                numLines = 10_000,
+                numDuplicates = 5_000,
+                approximateNumberOfParts = 90,
+                controlDiskspace = true,
+            )
+        }
+
+    @Test
+    fun `test suspended sort large file with small mem allocation and without control diskspace`(@TempDir dir: Path): Unit =
+        runBlocking(Dispatchers.IO) {
+            testSuspendSortLargeFile(
+                dir = dir,
+                numLines = 15_000,
+                numDuplicates = 5_000,
+                approximateNumberOfParts = 100,
+                controlDiskspace = false,
+            )
+        }
 
     @Test
     fun `test blocking sort large file`(@TempDir dir: Path) {
@@ -492,6 +511,7 @@ internal class MergeSortTest {
         numLines: Int = 200_000,
         numDuplicates: Int = 10_000,
         approximateNumberOfParts: Int = 3,
+        controlDiskspace: Boolean = true,
     ) {
         val source = generateLargeFile(numLines, numDuplicates) {
             Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
@@ -510,7 +530,7 @@ internal class MergeSortTest {
             source = source,
             target = target,
             delimiter = "\n",
-            controlDiskspace = true,
+            controlDiskspace = controlDiskspace,
             charset = Charsets.UTF_8,
             allocatedMemorySizeInBytes = allocatedMemory,
             comparator = comparator,
