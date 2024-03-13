@@ -117,7 +117,7 @@ fun SeekableByteChannel.insert(
  * Inverts the file content, `a,b,c` -> `c,b,a`
  * @param [source][Path]
  * @param [target][Path]
- * @param [deleteSourceFiles] if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * @param [controlDiskspace] if `true` source files will be truncated while processing and completely deleted at the end of it;
  * this allows saving diskspace
  * @param [delimiter]
  * @param [charset][Charset]
@@ -125,35 +125,63 @@ fun SeekableByteChannel.insert(
 fun invert(
     source: Path,
     target: Path,
-    deleteSourceFiles: Boolean = true,
+    controlDiskspace: Boolean = true,
     delimiter: String = "\n",
     charset: Charset = Charsets.UTF_8,
+) = invert(
+    source = source,
+    target = target,
+    controlDiskspace = controlDiskspace,
+    delimiter = delimiter.bytes(charset),
+    bomSymbols = charset.bomSymbols()
+)
+
+/**
+ * Inverts the file content, `a,b,c` -> `c,b,a`
+ * @param [source][Path]
+ * @param [target][Path]
+ * @param [controlDiskspace][Boolean]
+ * if `true` source files will be truncated while processing and completely deleted at the end of it;
+ * this allows saving diskspace
+ * @param [delimiter][ByteArray] e.g. for UTF-16 `" " = [0, 32]`
+ * @param [bomSymbols][ByteArray] e.g. for UTF-16 `[-2, -1]`
+ */
+fun invert(
+    source: Path,
+    target: Path,
+    controlDiskspace: Boolean = true,
+    delimiter: ByteArray = "\n".toByteArray(Charsets.UTF_8),
+    bomSymbols: ByteArray = byteArrayOf(),
+    buffer: ByteBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE_IN_BYTES),
 ) {
-    val bomSymbols = charset.bomSymbols()
-    val delimiterBytes = delimiter.bytes(charset)
+    val bom = ByteBuffer.wrap(bomSymbols)
     Files.newByteChannel(target, StandardOpenOption.WRITE).use { dst ->
         Files.newByteChannel(source, StandardOpenOption.READ, StandardOpenOption.WRITE).use { src ->
-            dst.write(ByteBuffer.wrap(bomSymbols))
+            if (bomSymbols.isNotEmpty()) {
+                dst.write(bom)
+                bom.rewind()
+            }
             var position = src.size()
             src.syncReadByteLines(
                 startAreaPositionInclusive = bomSymbols.size.toLong(),
                 endAreaPositionExclusive = src.size(),
-                delimiter = delimiterBytes,
+                delimiter = delimiter,
                 direct = false,
+                buffer = buffer,
             ).forEach { line ->
                 position -= line.size
                 dst.write(ByteBuffer.wrap(line))
                 if (position != 0L) {
-                    position -= delimiterBytes.size
-                    dst.write(ByteBuffer.wrap(delimiterBytes))
+                    position -= delimiter.size
+                    dst.write(ByteBuffer.wrap(delimiter))
                 }
-                if (deleteSourceFiles) {
+                if (controlDiskspace) {
                     src.truncate(position)
                 }
             }
         }
     }
-    if (deleteSourceFiles) {
+    if (controlDiskspace) {
         source.deleteExisting()
     }
 }
