@@ -250,6 +250,7 @@ suspend fun suspendSort(
     bomSymbols: ByteArray = byteArrayOf(),
     allocatedMemorySizeInBytes: Int = SORT_FILE_DEFAULT_MEMORY_ALLOCATION_IN_BYTES,
     controlDiskspace: Boolean = false,
+    numberOfOpenDescriptors: Int = SORT_FILE_NUMBER_OF_OPEN_FILE_DESCRIPTORS,
 ) {
     require(source.exists()) { "The source file <$source> does not exist" }
     require(source.isRegularFile()) { "The source <$source> is not a file" }
@@ -304,10 +305,106 @@ suspend fun suspendSort(
                 coroutineScope = coroutineScope,
             )
         )
-        if (parts.isNotEmpty()) {
-            mergeFilesInverse(
-                sources = parts,
+        mergeInverseParts(
+            parts = parts,
+            source = source,
+            tmpTarget = tmpTarget,
+            comparator = comparator,
+            delimiter = delimiter,
+            bomSymbols = bomSymbols,
+            controlDiskspace = controlDiskspace,
+            numberOfOpenDescriptors = numberOfOpenDescriptors,
+            allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+            coroutineScope = coroutineScope,
+        )
+    } finally {
+        parts.deleteAll()
+    }
+    tmpTarget.moveTo(target = target, overwrite = true)
+}
+
+private fun mergeInverseParts(
+    parts: MutableSet<Path>,
+    source: Path,
+    tmpTarget: Path,
+    comparator: Comparator<ByteArray>,
+    delimiter: ByteArray,
+    bomSymbols: ByteArray,
+    controlDiskspace: Boolean,
+    numberOfOpenDescriptors: Int,
+    allocatedMemorySizeInBytes: Int,
+    coroutineScope: CoroutineScope,
+) {
+    // while (true) {
+    //  if (reversed.size == 1 && direct.isEmpty) {
+    //      return reversed(invert[0])
+    //  }
+    //  if (reversed.isEmpty && direct.size == 1) {
+    //      return direct[0]
+    //  }
+    //  if (reversed.size == 1 && direct.size == 1) {
+    //      reversed.add(invert(direct[0]))
+    //  }
+    //  if (reversed.size > 1) {
+    //      val chunk = reversed.removeChunk()
+    //      val res = mergeFilesInverse(chunk)
+    //      direct.add(res)
+    //  }
+    //  if (direct.size > 1) {
+    //      val chunk = direct.removeChunk()
+    //      val res = mergeFilesInverse(chunk)
+    //      reverse.add(res)
+    //  }
+    // }
+
+    val reversed = mutableSetOf<Path>()
+    val direct = mutableSetOf<Path>()
+    reversed.addAll(parts)
+    var fileCounter = parts.size
+    while (true) {
+        if (reversed.isEmpty() && direct.isEmpty()) {
+            throw IllegalStateException("Should not happen")
+        }
+        if (reversed.isEmpty() && direct.size == 1) {
+            direct.single().moveTo(target = tmpTarget, overwrite = true)
+            parts.removeAll(direct)
+            break
+        }
+        if (reversed.size == 1 && direct.isEmpty()) {
+            invert(
+                source = reversed.single(),
                 target = tmpTarget,
+                controlDiskspace = controlDiskspace,
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+            )
+            reversed.deleteAll()
+            parts.removeAll(reversed)
+            break
+        }
+        if (reversed.size == 1 && direct.size == 1) {
+            val targetDirectFile = source + ("." + ++fileCounter + ".part")
+            targetDirectFile.createFile()
+            parts.add(targetDirectFile)
+            invert(
+                source = direct.single(),
+                target = targetDirectFile,
+                controlDiskspace = controlDiskspace,
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+            )
+            reversed.add(targetDirectFile)
+            parts.removeAll(direct)
+            direct.clear()
+        }
+        if (reversed.size > 1) {
+            val sourceReversedFiles = reversed.removeChunk(numberOfOpenDescriptors)
+            val targetDirectFile = source + ("." + ++fileCounter + ".part")
+            targetDirectFile.createFile()
+            parts.add(targetDirectFile)
+            mergeFilesInverse(
+                sources = sourceReversedFiles,
+                target = targetDirectFile,
                 comparator = comparator,
                 delimiter = delimiter,
                 bomSymbols = bomSymbols,
@@ -315,11 +412,30 @@ suspend fun suspendSort(
                 controlDiskspace = controlDiskspace,
                 coroutineScope = coroutineScope,
             )
+            sourceReversedFiles.deleteAll()
+            direct.add(targetDirectFile)
+            parts.removeAll(sourceReversedFiles)
         }
-    } finally {
-        parts.deleteAll()
+        if (direct.size > 1) {
+            val sourceDirectFiles = direct.removeChunk(numberOfOpenDescriptors)
+            val targetReversedFile = source + ("." + ++fileCounter + ".part")
+            targetReversedFile.createFile()
+            parts.add(targetReversedFile)
+            mergeFilesInverse(
+                sources = sourceDirectFiles,
+                target = targetReversedFile,
+                comparator = comparator.reversed(),
+                delimiter = delimiter,
+                bomSymbols = bomSymbols,
+                allocatedMemorySizeInBytes = allocatedMemorySizeInBytes,
+                controlDiskspace = controlDiskspace,
+                coroutineScope = coroutineScope,
+            )
+            sourceDirectFiles.deleteAll()
+            reversed.add(targetReversedFile)
+            parts.removeAll(sourceDirectFiles)
+        }
     }
-    tmpTarget.moveTo(target = target, overwrite = true)
 }
 
 /**
@@ -529,4 +645,15 @@ private fun writeLines(
 private fun Array<ByteArray>.sort(comparator: Comparator<ByteArray>): Array<ByteArray> {
     sortWith(comparator)
     return this
+}
+
+private fun MutableSet<Path>.removeChunk(n: Int): Set<Path> {
+    val res = sortedBy { it.fileSize() }.take(n).toMutableSet()
+    removeAll(res)
+    if (size == 1 && res.size > 2) {
+        val p = res.single()
+        res.remove(p)
+        add(p)
+    }
+    return res
 }

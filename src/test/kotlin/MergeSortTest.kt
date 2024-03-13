@@ -206,13 +206,18 @@ internal class MergeSortTest {
     @Test
     fun `test suspended sort large file with big mem allocation`(@TempDir dir: Path): Unit =
         runBlocking(Dispatchers.IO) {
-            testSuspendSortLargeFile(dir = dir, numLines = 200_000, numDuplicates = 10_000, numberOfParts = 4)
+            testSuspendSortLargeFile(
+                dir = dir,
+                numLines = 200_000,
+                numDuplicates = 10_000,
+                approximateNumberOfParts = 4
+            )
         }
 
     @Test
     fun `test suspended sort large file with small mem allocation`(@TempDir dir: Path): Unit =
         runBlocking(Dispatchers.IO) {
-            testSuspendSortLargeFile(dir = dir, numLines = 10_000, numDuplicates = 5_000, numberOfParts = 90)
+            testSuspendSortLargeFile(dir = dir, numLines = 10_000, numDuplicates = 5_000, approximateNumberOfParts = 90)
     }
 
     @Test
@@ -485,7 +490,7 @@ internal class MergeSortTest {
         dir: Path,
         numLines: Int = 200_000,
         numDuplicates: Int = 10_000,
-        numberOfParts: Int = 3,
+        approximateNumberOfParts: Int = 3,
     ) {
         val source = generateLargeFile(numLines, numDuplicates) {
             Files.createTempFile(dir, "xxx-merge-sort-source-", ".xxx")
@@ -493,7 +498,7 @@ internal class MergeSortTest {
         val target = Paths.get(source.toString().replace("-source-", "-target-"))
 
         val fileSize = source.fileSize()
-        val allocatedMemory = fileSize.toInt() / numberOfParts
+        val allocatedMemory = fileSize.toInt() / approximateNumberOfParts
         val comparator = Comparator<String> { left, right ->
             val a = left.substringBefore("::")
             val b = right.substringBefore("::")
