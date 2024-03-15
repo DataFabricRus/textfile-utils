@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "cc.datafabric"
-version = "1.5-SNAPSHOT"
+version = "1.6-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -17,7 +17,7 @@ dependencies {
     val kotlinCoroutinesVersion: String by project
     val resourceIteratorVersion: String by project
 
-    implementation("com.github.DataFabricRus:resource-iterator:$resourceIteratorVersion")
+    implementation("com.github.DataFabricRus.resource-iterator:resource-iterator-jvm:$resourceIteratorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 }
