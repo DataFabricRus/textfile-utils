@@ -133,7 +133,7 @@ fun ByteArray.split(delimiter: ByteArray): Sequence<ByteArray> = sequence {
  * note that the inserted data should follow delimiter bytes at the ending
  * - `Lines(N, M, listOf(ByteArray ..))` - found, `N` (inclusive) and `M` (exclusive) positions (in the [source]) of block
  */
-@Suppress("DuplicatedCode", "UnnecessaryVariable")
+@Suppress("DuplicatedCode")
 fun byteArrayBinarySearch(
     searchLine: ByteArray,
     source: ByteBuffer,
@@ -156,7 +156,7 @@ fun byteArrayBinarySearch(
             if (includeRightBound && high == sourceEndExclusive) {
                 return Lines(startInclusive = sourceEndExclusive, endExclusive = -1, lines = emptyList())
             }
-            throw IllegalStateException("bug?")
+            throw IllegalStateException("Is the file sorted?")
         }
         val middle = low + high ushr 1
         val current = findLineNearPosition(
@@ -204,7 +204,6 @@ fun byteArrayBinarySearch(
                     Lines(startInclusive = high, endExclusive = -1, lines = emptyList())
                 }
             }
-            throw IllegalStateException("bug?")
         }
         val nextHigh = position // exclusive
         val nextLow = position + bytes.size // inclusive

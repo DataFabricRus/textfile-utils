@@ -12,11 +12,14 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.nio.ByteBuffer
+import java.nio.channels.SeekableByteChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.createTempFile
 import kotlin.io.path.useLines
+import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 @Timeout(value = 2, unit = TimeUnit.MINUTES)
@@ -434,4 +437,64 @@ internal class BinarySearchTest {
         }
     }
 
+    @Test
+    fun `test binary-search in empty file, not found`(@TempDir dir: Path) {
+        val sourceFile = createTempFile(dir, "empty.", ".txt")
+        sourceFile.writeBytes(
+            BinarySearchTest::class.java.getResourceAsStream("/empty.txt")!!.readAllBytes()
+        )
+        val fileBufferSizeInBytes = 3004
+        val fileMaxLineLengthInBytes = 1500
+        val prefixWordDelimiter = "|"
+        val fileLineSeparator = "\n".toByteArray(Charsets.UTF_8)
+        val fileBuffer = ByteBuffer.allocateDirect(fileBufferSizeInBytes)
+        val searchLine = "0031b125-b725-4ac0-8099-ecc0c06de533"
+
+        val channel: SeekableByteChannel = Files.newByteChannel(sourceFile, StandardOpenOption.READ)
+
+        channel.use {
+            val (position, lines) = channel.binarySearch(
+                searchLine = searchLine.toByteArray(Charsets.UTF_8),
+                delimiter = fileLineSeparator,
+                comparator = byteArrayPrefixSimpleComparator(prefixWordDelimiter),
+                buffer = fileBuffer,
+                maxLineLengthInBytes = fileMaxLineLengthInBytes,
+            )
+
+            Assertions.assertTrue(lines.isEmpty())
+            Assertions.assertEquals(26, position)
+        }
+    }
+
+    @Test
+    fun `test binary-search in almost empty file, found`(@TempDir dir: Path) {
+        val sourceFile = createTempFile(dir, "sparse.", ".txt")
+        sourceFile.writeBytes(
+            BinarySearchTest::class.java.getResourceAsStream("/sparse.txt")!!.readAllBytes()
+        )
+        val fileBufferSizeInBytes = 3004
+        val fileMaxLineLengthInBytes = 1500
+        val prefixWordDelimiter = "|"
+        val fileLineSeparator = "\n".toByteArray(Charsets.UTF_8)
+        val fileBuffer = ByteBuffer.allocateDirect(fileBufferSizeInBytes)
+        val searchLine = "0031b125-b725-4ac0-8099-ecc0c06de533"
+
+        val channel: SeekableByteChannel = Files.newByteChannel(sourceFile, StandardOpenOption.READ)
+
+        channel.use {
+            val (position, lines) = channel.binarySearch(
+                searchLine = searchLine.toByteArray(Charsets.UTF_8),
+                delimiter = fileLineSeparator,
+                comparator = byteArrayPrefixSimpleComparator(prefixWordDelimiter),
+                buffer = fileBuffer,
+                maxLineLengthInBytes = fileMaxLineLengthInBytes,
+            )
+
+            Assertions.assertEquals(
+                listOf("0031b125-b725-4ac0-8099-ecc0c06de533|xxx", "0031b125-b725-4ac0-8099-ecc0c06de533|yyy"),
+                lines.map { it.toString(Charsets.UTF_8) }
+            )
+            Assertions.assertEquals(26, position)
+        }
+    }
 }
