@@ -1,5 +1,7 @@
 ## TextFile Utils
 
+[![](https://jitpack.io/v/DataFabricRus/textfile-utils.svg)](https://jitpack.io/#DataFabricRus/textfile-utils)
+
 A simple JVM library for working with text files of any size.
 The library is based on Java NIO (i.e. `java.nio.channels.SeekableByteChannel`) and Kotlin Coroutines.
 
