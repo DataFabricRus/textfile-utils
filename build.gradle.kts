@@ -1,11 +1,14 @@
+import java.security.MessageDigest
+
 plugins {
     kotlin("jvm")
     id("maven-publish")
+    id("org.jetbrains.dokka")
     signing
 }
 
-group = "cc.datafabric"
-version = "1.7-SNAPSHOT"
+group = "io.github.datafabricrus"
+version = "1.8"
 
 repositories {
     mavenCentral()
@@ -17,7 +20,7 @@ dependencies {
     val kotlinCoroutinesVersion: String by project
     val resourceIteratorVersion: String by project
 
-    implementation("com.github.DataFabricRus.resource-iterator:resource-iterator-jvm:$resourceIteratorVersion")
+    implementation("io.github.datafabricrus:resource-iterator-jvm:$resourceIteratorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 }
@@ -58,21 +61,47 @@ publishing {
     }
 }
 
+tasks.register<Jar>("javadocJar") {
+    dependsOn("dokkaHtml")
+    archiveClassifier.set("javadoc")
+    from(buildDir.resolve("dokka/html"))
+}
+
 java {
     withSourcesJar()
     withJavadocJar()
 }
 
 signing {
-    sign(publishing.publications["maven"])
+    sign(publishing.publications)
 }
 
 tasks.test {
     useJUnitPlatform()
 }
 
-tasks.getByName("signMavenPublication") {
-    enabled = project.hasProperty("sign")
+tasks.named("publishToMavenLocal") {
+    doLast {
+        println("================================================")
+        println("Generate MD5 files")
+        println("================================================")
+        val mavenLocalDir = file(repositories.mavenLocal().url)
+        val artifactPathAsString = project.group.toString().replace('.', '/') + "/${project.name}/${version}"
+        val artifactFile = mavenLocalDir.resolve(artifactPathAsString)
+        val files = artifactFile.walkTopDown()
+            .filter {
+                it.isFile && (it.extension == "jar" || it.extension == "pom" || it.extension == "module")
+            }
+        files.forEach { file ->
+            val md5 = MessageDigest.getInstance("MD5")
+                .digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+            val sha1 = MessageDigest.getInstance("SHA-1")
+                .digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+
+            file.resolveSibling("${file.name}.md5").writeText(md5)
+            file.resolveSibling("${file.name}.sha1").writeText(sha1)
+        }
+    }
 }
 
 kotlin {

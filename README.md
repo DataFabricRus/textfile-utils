@@ -46,16 +46,10 @@ fun binarySearch(
 ): Pair<Long, List<String>>
 ```
 
-#### Available via [jitpack](https://jitpack.io/#DataFabricRus/textfile-utils):
+#### Available via maven-central:
 ```kotlin
-repositories {
-    ...
-    maven(url = "https://jitpack.io")
-}
-
-
 dependencies {
-    implementation("com.github.DataFabricRus:textfile-utils:{{latest_version}}")
+    implementation("io.github.datafabricrus:textfile-utils:{{latest_version}}")
 }
 ```
 
